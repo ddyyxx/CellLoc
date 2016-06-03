@@ -1,0 +1,427 @@
+package tong.mongo.loction;
+
+import java.io.IOException;
+import java.sql.SQLException;
+import java.text.ParseException;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.Vector;
+
+import tong.mongo.defclass.Car;
+import tong.mongo.defclass.CarOld;
+import tong.mongo.defclass.Line;
+import tong.mongo.defclass.MapLoc;
+import tong.mongo.defclass.Point;
+import tong.mongo.defclass.sector;
+
+import com.defcons.MyCons;
+import com.mongodb.BasicDBObject;
+import com.mongodb.DB;
+import com.mongodb.DBCollection;
+import com.mongodb.DBCursor;
+import com.mongodb.DBObject;
+import com.mongodb.Mongo;
+
+public class MdbFind {
+
+	//---------------------------参数设置-----------------------------//	
+	public final static int INTERVALNUM = 3;	 //采样密度(每几个点取1个点)
+	final static int ONCE_NUM = 50; //一次给点的数量，最多为30	
+	final static int INDEX = 6; //指定当前选定的文件名数组的下标(每次修改这里即可)
+	public static String filename = MyCons.arr_filename[INDEX]; //获取文件名
+	static String outfilename  = 
+			"F://Zhengye_Drive_Testing_Data/road_poi//JSON_roadinfo_"+filename+ ".json";
+	//---------------------------------------------------------------//	
+
+	static Mongo connection = null;
+	static DB db = null;
+	static DBCollection dbcoll = null;
+	static DBCollection coll = null;	
+	
+	@SuppressWarnings({ "deprecation", "unchecked" })
+	public static void main(String[] args) throws IOException, SQLException, ParseException {
+
+		//初始化文件输出对象
+		OutputFile outer = new OutputFile();
+		outer.init(outfilename);
+		
+		//数据库连接
+		connection = new Mongo("127.0.0.1:27017");
+		db = connection.getDB("MapLoc");
+
+		//MapLoc mLoc = new MapLoc();
+		HashMap<Long, Point> pMap = new HashMap<Long, Point>();
+		HashMap<Long, Line> lMap = new HashMap<Long, Line>();
+		List<Long> aList = new LinkedList<Long>();
+		DBObject object = null;
+		DBCursor dbcsor = null;
+		List<String> DBlist = new LinkedList<String>();
+
+		dbcoll = db.getCollection("mapCar");
+		DBlist = dbcoll.distinct("cid");
+
+		System.out.println("num of cid:"+DBlist.size());
+		for (String num : DBlist) {			
+			
+			int currnum  = 0;  //指示当前点的数量，如果超过了30个，再重新开始
+			////////////////////////////////////////////////////////////////////////
+			//////////////存放所有的基站位置map（不含diff为1.0e8这种情况）////////////
+			Map<String , double[]> map_lteloc = new HashMap<String , double[]>();
+			//获取基站位置
+			//filename的形式为"Zhengye_DriveTesting_08-24.17-58";
+			CarAzimuthAll.getUniqLTELoc(filename,map_lteloc);
+			System.out.println("基站数量："+map_lteloc.size());		
+
+			//执行函数获取信息
+			Car mycar ;
+			mycar = CarAzimuthAll.readFileSolution(filename,map_lteloc);
+			System.out.println("采样点总的数量："+mycar.PointNum);
+			/////////////////////////////////////////////////////////////////////////
+			/////////////////////////////////////////////////////////////////////////
+			
+			dbcsor = dbcoll.find(new BasicDBObject("cid", num));
+			// 对一辆车进行运算
+			for(int count = 0 ; count < mycar.PointNum ; count+=ONCE_NUM){
+				
+				//////////////////////////////////////////////////////////////
+				///////////////给一组car赋值(一组为30个)///////////////////////
+				int mycurrnum = 0;
+				Vector<Vector<Long>> legalline = new Vector<Vector<Long>>();//候选集
+				Vector<Point> PointSet = new Vector<Point>();//基站坐标
+				Vector<Double> taSet = new Vector<Double>();//TA值
+				Vector<sector> sectorSet = new Vector<sector>();//扇形范围（角度）
+				Vector<Double> TimeSet = new Vector<Double>();//时间值		
+				for(int i = count ; i< count+ONCE_NUM && i< mycar.PointNum; i++){
+					PointSet.add(mycar.PointSet.get(i));
+					taSet.add(mycar.taSet.get(i));
+					sectorSet.add(mycar.sectorSet.get(i));
+					mycurrnum ++;
+				}
+				
+				Car currcar = new Car(mycurrnum,legalline,PointSet,taSet,sectorSet,TimeSet); //获取当前的值
+				System.out.println("当前集合中点的数量："+currcar.PointNum);
+				///////////////////////////////////////////////////////////////
+				///////////////////////////////////////////////////////////////
+				
+				MapLoc mLoc = new MapLoc();
+				CarOld car = new CarOld(mycurrnum);
+				car.cid = Long.parseLong(num);
+
+				pMap.clear();
+				lMap.clear();
+				aList.clear();
+
+				System.out.println("当前集合中添加的GPS点数量:"+car.PointSet.size());
+				
+				while (dbcsor.hasNext()) {
+					if(currnum >= ONCE_NUM) {
+						currnum = 0;
+						break;
+					}
+					DBObject cObject = dbcsor.next();
+					String tim = (String) cObject.get("time");
+					Map<String, Double> cmap = (Map<String, Double>) cObject.get("gis");
+					double latt = cmap.get("lat");
+					double lngg = cmap.get("lon");
+					car.addPoint(latt, lngg, Double.parseDouble(tim));
+					//将当前真实GPS点添加到集合中
+
+					
+					coll = db.getCollection("mapPoint");
+					object = new BasicDBObject("gis", new BasicDBObject("$within",
+							new BasicDBObject("$center", Arrays.asList(
+									Arrays.asList(latt, lngg), 0.3 / 111.12))));
+					DBCursor cursor = coll.find(object);
+	
+					// 找出一辆车行驶线路范围内的点
+					while (cursor.hasNext()) {
+						DBObject result = cursor.next();
+						Long key = (Long) result.get("_id");
+	
+						if (!pMap.containsKey(key)) {
+							Point p = new Point();
+							Map<String, Double> m = (Map<String, Double>) result.get("gis");
+							List<Long> list = (List<Long>) result.get("edge");
+							Vector<Long> vtor = new Vector<Long>();
+							vtor.addAll(list);
+							p.id = (Long) result.get("_id");
+							p.x = m.get("lat");
+							p.y = m.get("lon");
+							pMap.put(key, p);
+	
+							for (long v : vtor) {
+								if (!aList.contains(v)) {
+									aList.add(v);
+								}
+							}
+						}
+					}
+					
+					// 找出一辆车行驶线路范围内的线段
+					coll = db.getCollection("mapArc");
+					cursor = coll.find(new BasicDBObject("_id", new BasicDBObject("$in", aList)));
+
+					while (cursor.hasNext()) {
+						DBObject result = cursor.next();
+						Long key = (Long) result.get("_id");
+
+						if (!lMap.containsKey(key)) {
+							Line l = new Line();
+							long id = (Long) result.get("_id");
+							Map<String, Long> m = (Map<String, Long>) result
+									.get("gis");
+							double length = (Double) result.get("length");
+							long strid = (Long) result.get("wayid");
+							l.index = id;
+							l.pid[0] = m.get("x");
+							l.pid[1] = m.get("y");
+							l.length = length;
+							l.strid = strid;
+							if (pMap.containsKey(l.pid[0])
+									&& pMap.containsKey(l.pid[1])) {
+								l.p[0] = pMap.get(l.pid[0]);
+								l.p[1] = pMap.get(l.pid[1]);
+								lMap.put(key, l);
+							}
+						}
+					}
+					currnum ++;					
+				}
+				
+				//输出用于选取地图的当前车辆GPS点
+				System.out.println("添加完毕.....");
+				System.out.println("当前集合中添加的GPS点数量:"+car.PointSet.size());
+//				for(int i = 0 ; i < car.PointNum ; i++){
+//					System.out.println(car.cid+" "+ car.PointSet.get(i).x+" "+car.PointSet.get(i).y+" "+car.TimeSet.get(i));
+//				}			
+
+				
+				mLoc.PointNum = pMap.size();
+				mLoc.LineNum = lMap.size();
+				mLoc.PointSet = pMap;
+				mLoc.LineSet = lMap;
+				System.out.println("点集合数量："+mLoc.PointSet.size());
+				System.out.println("线集合数量："+mLoc.LineSet.size());
+	
+				Estimate est = new Estimate();
+				Vector<Long> street = new Vector<Long>();
+//				Vector<LineSpeed> speed = new Vector<LineSpeed>();
+	
+				est.StreetEstimate(mLoc, currcar, street); //注意 用的是currcar,30一组的
+				
+//				Map<Long, Double> link = new HashMap<Long, Double>();
+//				for (int i = 0; i < speed.size(); i++) {
+//					LineSpeed ls = speed.get(i);
+//					link.put(ls.lineid, ls.speed);
+//				}
+				
+				System.out.println(street.size());
+				System.out.println("==============================");
+				
+				for (int i = 0; i < street.size(); i++) {
+					//System.out.println(street.get(i)+" : "+link.get(street.get(i)));
+					System.out.println(street.get(i));
+				}
+				System.out.println("==============================");
+				
+				//----------------------------------------------------------//
+				//在数据库中查找对应路编号对应的点，再在点集合中找到对应的经纬度//
+				//outLineWithoutRepeat(street,db,outer); 			//去掉重复道路，并将结果输出到文件
+				outLine(street,db,outer); 		//输出没有去重的道路
+				
+				if(street.size()==0) //如果当前没有匹配到结果，则还需要进一步处理
+					System.out.println("哎呦哎呦!!!!!!!!!!!");
+
+			}
+		}		
+		
+		connection.close();
+		outer.closelink();
+		
+		OutGps.outToJSFileRun();//将道路结果输出并转换格式用于描点
+		
+	}
+	
+	
+	
+	
+	
+	
+	
+	
+	
+
+	
+	//-------在数据库中查找对应路编号对应的点，再在点集合中找到对应的经纬度------//
+	//----------------------利用set去掉所有重复的道路ID------------------------//
+	@SuppressWarnings("unchecked")
+	public static void outLineWithoutRepeat(Vector<Long> street, DB db, OutputFile outer)throws IOException {
+		Set<Long> idSet = new HashSet<Long>();
+		for (int i = 0; i < street.size(); i++) {
+			long currid = street.get(i);
+			if (idSet.contains(currid)) // 如果道路ID已经存在，那么寻找下一个ID
+				continue;
+			idSet.add(currid); // 道路ID不存在，将ID加入集合
+
+			DBCollection dbcollArc = db.getCollection("mapArc");
+			DBCursor dbcsorArc = dbcollArc.find(new BasicDBObject("_id", currid));
+			DBObject arcobject = dbcsorArc.next();
+			Map<String, Long> map_arc = (Map<String, Long>) arcobject.get("gis");
+			Long arc_x = map_arc.get("x"); // 获取路两端点的ID
+			Long arc_y = map_arc.get("y");
+
+			DBCollection dbcollPoi = db.getCollection("mapPoint");
+			DBCursor dbcsorPoi = dbcollPoi
+					.find(new BasicDBObject("_id", arc_x));
+			DBObject poiobject = dbcsorPoi.next();
+			Map<String, Double> map_poi = (Map<String, Double>) poiobject.get("gis");
+			double x_lat = map_poi.get("lat");
+			double x_lon = map_poi.get("lon");
+
+			dbcsorPoi = dbcollPoi.find(new BasicDBObject("_id", arc_y));
+			poiobject = dbcsorPoi.next();
+			map_poi = (Map<String, Double>) poiobject.get("gis");
+			double y_lat = map_poi.get("lat");
+			double y_lon = map_poi.get("lon");
+
+			// 获取路中点的经纬度
+			double[] midloc = getMid(x_lat, x_lon, y_lat, y_lon);
+			String currstr = outer.getStrMid(midloc[0], midloc[1]);
+			outer.outputToFile(currstr);
+		}
+	}
+
+	
+	//-----------在数据库中查找对应路编号对应的点，再在点集合中找到对应的经纬度-------//
+	@SuppressWarnings("unchecked")
+	public static void outLine(Vector<Long> street, DB db, OutputFile outer)throws IOException {
+		Long preid = Long.MIN_VALUE;
+		for (int i = 0; i < street.size(); i++) {
+			long currid = street.get(i);
+			if (preid == currid)
+				continue;
+			preid = currid;
+			DBCollection dbcollArc = db.getCollection("mapArc");
+			DBCursor dbcsorArc = dbcollArc.find(new BasicDBObject("_id", currid));
+			DBObject arcobject = dbcsorArc.next();
+			Map<String, Long> map_arc = (Map<String, Long>) arcobject.get("gis");
+			Long arc_x = map_arc.get("x"); // 获取路两端点的ID
+			Long arc_y = map_arc.get("y");
+
+			DBCollection dbcollPoi = db.getCollection("mapPoint");
+			DBCursor dbcsorPoi = dbcollPoi.find(new BasicDBObject("_id", arc_x));
+			DBObject poiobject = dbcsorPoi.next();
+			Map<String, Double> map_poi = (Map<String, Double>) poiobject.get("gis");
+			double x_lat = map_poi.get("lat");
+			double x_lon = map_poi.get("lon");
+
+			dbcsorPoi = dbcollPoi.find(new BasicDBObject("_id", arc_y));
+			poiobject = dbcsorPoi.next();
+			map_poi = (Map<String, Double>) poiobject.get("gis");
+			double y_lat = map_poi.get("lat");
+			double y_lon = map_poi.get("lon");
+
+			// System.out.println("路的两端ID:"+arc_x+" "+arc_y+" x的纬度经度: "+x_lat+" "+x_lon+" y的纬度经度："+y_lat+" "+y_lon);
+			// String currstr = outer.getStr(currid, x_lat,x_lon,y_lat,y_lon);
+
+			// 获取路中点的经纬度
+			double[] midloc = getMid(x_lat, x_lon, y_lat, y_lon);
+			String currstr = outer.getStrMid(midloc[0], midloc[1]);
+			outer.outputToFile(currstr); //输出经纬度
+		}
+	}
+	
+	//-----------------获取街道两个端点经纬度的中点---------------//
+	public static double[] getMid(double x_lat , double x_lon, double y_lat , double y_lon){
+		double[] loc = new double[2];
+		loc[0] = (x_lat + y_lat)/2;
+		loc[1] = (x_lon + y_lon)/2;
+		return loc;
+	}
+	
+	
+	//-------------------获取点集合周围的道路点和弧-------------------------//
+	@SuppressWarnings("unchecked")
+	public static MapLoc getMap(Vector<Point> pointSet, DB db ){ //调用的时候再加上一个db即可
+		MapLoc mLoc = new MapLoc(); //存放搜索的结果
+		HashMap<Long, Point> pMap = new HashMap<Long, Point>(); //存放点集合
+		HashMap<Long, Line> lMap = new HashMap<Long, Line>();	//存放弧集合
+		List<Long> aList = new LinkedList<Long>();
+		DBCollection coll = null;
+		DBObject object = null; //数据库的搜索条件
+		
+		for(Point currpoi : pointSet){
+			double latt = currpoi.x;
+			double lngg = currpoi.y;
+			coll = db.getCollection("mapPoint"); //获取点集合
+			object = new BasicDBObject("gis", new BasicDBObject("$within",
+					new BasicDBObject("$center", Arrays.asList(
+							Arrays.asList(latt, lngg), 0.3 / 111.12))));
+			DBCursor cursor = coll.find(object);
+			
+			// 找出一辆车行驶线路范围内的点
+			while (cursor.hasNext()) {
+				DBObject result = cursor.next();
+				Long key = (Long) result.get("_id");
+	
+				if (!pMap.containsKey(key)) {
+					Point p = new Point();
+					Map<String, Double> m = (Map<String, Double>) result.get("gis");
+					List<Long> list = (List<Long>) result.get("edge");
+					Vector<Long> vtor = new Vector<Long>();
+					vtor.addAll(list);
+					p.id = (Long) result.get("_id");
+					p.x = m.get("lat");
+					p.y = m.get("lon");
+					pMap.put(key, p);
+	
+					for (long v : vtor) { //将包含当前点的弧的ID放进list
+						if (!aList.contains(v))
+							aList.add(v);
+					}
+				}
+			}//END WHILE
+			
+			// 找出一辆车行驶线路范围内的线段
+			coll = db.getCollection("mapArc");
+			cursor = coll.find(new BasicDBObject("_id", new BasicDBObject("$in", aList)));
+	
+			while (cursor.hasNext()) {
+				DBObject result = cursor.next();
+				Long key = (Long) result.get("_id");
+	
+				if (!lMap.containsKey(key)) {
+					Line l = new Line();
+					long id = (Long) result.get("_id");
+					Map<String, Long> m = (Map<String, Long>) result.get("gis");
+					double length = (Double) result.get("length");
+					long strid = (Long) result.get("wayid");
+					l.index = id;
+					l.pid[0] = m.get("x");
+					l.pid[1] = m.get("y");
+					l.length = length;
+					l.strid = strid;
+					if (pMap.containsKey(l.pid[0])&& pMap.containsKey(l.pid[1])) {
+						l.p[0] = pMap.get(l.pid[0]);
+						l.p[1] = pMap.get(l.pid[1]);
+						lMap.put(key, l);
+					}
+				}
+			}//END WHILE
+			
+		}
+		
+		mLoc.PointNum = pMap.size();
+		mLoc.LineNum = lMap.size();
+		mLoc.PointSet = pMap;
+		mLoc.LineSet = lMap;
+		return mLoc;		
+	}
+	
+	
+}

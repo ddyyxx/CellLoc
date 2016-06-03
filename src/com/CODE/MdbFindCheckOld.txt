@@ -1,0 +1,190 @@
+package com.evor.check;
+
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Vector;
+
+import tong.mongo.defclass.Car;
+import tong.mongo.defclass.Line;
+import tong.mongo.defclass.LineSpeed;
+import tong.mongo.defclass.MapLoc;
+import tong.mongo.defclass.Point;
+import com.mongodb.BasicDBObject;
+import com.mongodb.DB;
+import com.mongodb.DBCollection;
+import com.mongodb.DBCursor;
+import com.mongodb.DBObject;
+import com.mongodb.Mongo;
+
+public class MdbFindCheck {
+
+	static Mongo connection = null;
+	static DB db = null;
+	static DBCollection dbcoll = null;
+	static DBCollection coll = null;
+
+	@SuppressWarnings({ "deprecation", "unchecked" })
+	public static void main(String[] args) throws IOException {
+
+		connection = new Mongo("127.0.0.1:27017");
+		db = connection.getDB("MapLoc");
+
+		MapLoc mLoc = new MapLoc();
+		HashMap<Long, Point> pMap = new HashMap<Long, Point>();
+		HashMap<Long, Line> lMap = new HashMap<Long, Line>();
+		List<Long> aList = new LinkedList<Long>();
+		DBObject object = null;
+		DBCursor dbcsor = null;
+		List<String> DBlist = new LinkedList<String>();
+
+		dbcoll = db.getCollection("mapCar");
+		DBlist = dbcoll.distinct("cid");
+		System.out.println("总共有："+DBlist.size());
+		
+		//----------------计时器---------------------//
+		long startMili=System.currentTimeMillis();// 当前时间对应的毫秒数
+		System.out.println("开始 "+startMili);
+		//----------------计时器---------------------//
+		
+		//############创建检查速度的对象#############//
+		CheckSpeed checkspeed = new CheckSpeed();
+		//#########################################//
+		//int flag = 1;  //#########添加一个flag
+		for (String num : DBlist) {
+			//if(flag!=1) break;//################判断flag
+			dbcsor = dbcoll.find(new BasicDBObject("cid", num));
+
+			Car car = new Car(dbcsor.count());
+			car.cid = Long.parseLong(num);
+
+			pMap.clear();
+			lMap.clear();
+			aList.clear();
+
+			// 对一辆车进行运算
+			while (dbcsor.hasNext()) {
+				DBObject cObject = dbcsor.next();
+				String tim = (String) cObject.get("time");
+				Map<String, Double> cmap = (Map<String, Double>) cObject
+						.get("gis");
+				double latt = cmap.get("lat");
+				double lngg = cmap.get("lon");
+				car.addPoint(latt, lngg, Double.parseDouble(tim));
+
+				/*
+				 * DBObject object = new BasicDBObject("gis", new
+				 * BasicDBObject("$near", Arrays.asList(38.90688,
+				 * 121.57875)).append("$maxDistance", 0.3 / 111.12));
+				 */
+
+				coll = db.getCollection("mapPoint");
+				object = new BasicDBObject("gis", new BasicDBObject("$within",
+						new BasicDBObject("$center", Arrays.asList(
+								Arrays.asList(latt, lngg), 0.3 / 111.12))));
+				DBCursor cursor = coll.find(object);
+
+				// 找出一辆车行驶线路范围内的点
+				while (cursor.hasNext()) {
+					DBObject result = cursor.next();
+					Long key = (Long) result.get("_id");
+
+					if (!pMap.containsKey(key)) {
+						Point p = new Point();
+						Map<String, Double> m = (Map<String, Double>) result
+								.get("gis");
+						List<Long> list = (List<Long>) result.get("edge");
+						Vector<Long> vtor = new Vector<Long>();
+						vtor.addAll(list);
+						p.id = (Long) result.get("_id");
+						p.x = m.get("lat");
+						p.y = m.get("lon");
+						pMap.put(key, p);
+
+						for (long v : vtor) {
+							if (!aList.contains(v)) {
+								aList.add(v);
+							}
+						}
+					}
+				}
+
+				// 找出一辆车行驶线路范围内的线段
+				coll = db.getCollection("mapArc");
+				cursor = coll.find(new BasicDBObject("_id", new BasicDBObject(
+						"$in", aList)));
+				while (cursor.hasNext()) {
+					DBObject result = cursor.next();
+					Long key = (Long) result.get("_id");
+
+					if (!lMap.containsKey(key)) {
+						Line l = new Line();
+						long id = (Long) result.get("_id");
+						Map<String, Long> m = (Map<String, Long>) result
+								.get("gis");
+						double length = (Double) result.get("length");
+						l.index = id;
+						l.pid[0] = m.get("x");
+						l.pid[1] = m.get("y");
+						l.length = length;
+						if (pMap.containsKey(l.pid[0])
+								&& pMap.containsKey(l.pid[1])) {
+							l.p[0] = pMap.get(l.pid[0]);
+							l.p[1] = pMap.get(l.pid[1]);
+							lMap.put(key, l);
+						}
+					}
+				}
+			}
+
+			mLoc.PointNum = pMap.size();
+			mLoc.LineNum = lMap.size();
+			mLoc.PointSet = pMap;
+			mLoc.LineSet = lMap;
+
+			Estimate est = new Estimate();
+			Vector<Long> street = new Vector<Long>();
+			Vector<LineSpeed> speed = new Vector<LineSpeed>();
+
+			est.StreetEstimate(mLoc, car, street);
+			est.SpeedEstimate(mLoc, car, speed);
+			
+			Map<Long, Double> link = new HashMap<Long, Double>();
+			for (int i = 0; i < speed.size(); i++) {
+				LineSpeed ls = speed.get(i);
+				link.put(ls.lineid, ls.speed);
+			}
+			System.out.println("==============================");
+			System.out.println(street.size());
+			for (int i = 0; i < street.size(); i++) {
+				System.out.println(street.get(i)+" : "+link.get(street.get(i)));
+			}
+
+			/*			
+			System.out.println(street.size());
+			for (int i = 0; i < street.size(); i++) {
+				System.out.println(street.get(i));
+			}
+			System.out.println(speed.size());
+			for (int i = 0; i < speed.size(); i++) {
+				LineSpeed ls = speed.get(i);
+				System.out.println(ls.lineid + " " + ls.speed);
+			}*/
+			//----------------计时器---------------------//
+			long endMili=System.currentTimeMillis();
+			System.out.println("结束 s"+endMili);
+			System.out.println("总耗时为："+(endMili-startMili)+"毫秒");
+			//----------------计时器---------------------//
+			checkspeed.getSolSpeed(street, speed); //获取每一个结果
+			//flag = 0; //######给flag赋值
+		}
+		//########获得检查结果并输出##########
+		double con = checkspeed.MYCheck();
+		System.out.println("精度为："+con);
+		//###################################
+		connection.close();		
+	}
+}
