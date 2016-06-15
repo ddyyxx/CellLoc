@@ -1,0 +1,628 @@
+package com.CODE;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.PriorityQueue;
+import java.util.Queue;
+import java.util.Random;
+import java.util.TreeMap;
+import java.util.Vector;
+
+import tong.mongo.defclass.Car;
+import tong.mongo.defclass.Line;
+import tong.mongo.defclass.LineSpeed;
+import tong.mongo.defclass.MapLoc;
+import tong.mongo.defclass.Point;
+
+class Algorithm{
+	//函数定义
+	double PI = 3.141592653589793238462643383279502884;
+	double EPS=1e-8;
+	public double Rad(double d) {
+	    return d * PI / 180.0;
+	}
+
+	public double Distance(double lat1, double lng1, double lat2,double lng2) {
+		double radLat1 = Rad(lat1);
+		double radLat2 = Rad(lat2);
+		double a = radLat1 - radLat2;
+		double b = Rad(lng1) - Rad(lng2);
+		double s = 2 * Math.asin(Math.sqrt(Math.pow(Math.sin(a / 2), 2)
+				+ Math.cos(radLat1) * Math.cos(radLat2)
+				* Math.pow(Math.sin(b / 2), 2)));
+		s = s * 6378137.0;
+		s = Math.round(s * 10000) / 10000;
+		return s;
+	}
+	public double Fabs(double x){
+		return x>0?x:-x;
+	}
+	public boolean compare(Point a,Point b){//判断两点是否在同一点
+	    if(Fabs(a.x-b.x)<EPS && Fabs(a.y-b.y)<EPS)
+	    return true;
+	    return false;
+	}
+	public double Distance(Point p1,Point p2){
+	    double lat1=p1.x, lng1=p1.y,lat2=p2.x,lng2=p2.y;
+	    return Distance(lat1,lng1,lat2,lng2);
+	}
+
+	public double xmult(Point p1, Point p2,Point p0){//求叉积
+	    double t1=p1.x-p0.x;
+	    double t2=p2.y-p0.y;
+	    double t3=p2.x-p0.x;
+	    double t4=p1.y-p0.y;
+	    return t1*t2-t3*t4;
+	}
+
+	public Point intersection(Line u,Line v){//计算两直线交点 注意是直线（若要计算线段相交得先判断线段是否相交） （之前要判断是否有交点）
+		Point ret=new Point(u.p[0]);
+	    double t=((u.p[0].x-v.p[0].x)*(v.p[0].y-v.p[1].y)-(u.p[0].y-v.p[0].y)*(v.p[0].x-v.p[1].x))/((u.p[0].x-u.p[1].x)*(v.p[0].y-v.p[1].y)-(u.p[0].y-u.p[1].y)*(v.p[0].x-v.p[1].x));
+	    ret.x+=(u.p[1].x-u.p[0].x)*t;
+	    ret.y+=(u.p[1].y-u.p[0].y)*t;
+	    return ret;
+	}
+
+	public Point ptoseg(Point p,Line l){//点到线段上最近的点
+	    if(compare(l.p[0],l.p[1]))
+	    	return new Point(l.p[0]);
+	    Point t=new Point(p);
+	    t.x+=l.p[0].y-l.p[1].y;
+	    t.y+=l.p[1].x-l.p[0].x;
+	    if(xmult(l.p[0],t,p)*xmult(l.p[1],t,p)>EPS)
+	    	return Distance(p,l.p[0])<Distance(p,l.p[1])?new Point(l.p[0]):new Point(l.p[1]);
+	    Line tmp=new Line();
+	    tmp.p[0]=new Point(t);
+	    tmp.p[1]=new Point(p);
+	    return intersection(tmp,l);
+	}
+
+	public double disptoseg(Point p,Line L){//求点到线段的距离
+		//p.print();
+		//L.print();
+	    double a=Distance(L.p[0],L.p[1]);
+	    double b=Distance(p,L.p[0]);
+	    double c=Distance(p,L.p[1]);
+	    if(c*c>=b*b+a*a)
+	    return b;
+	    else if(b*b>c*c+a*a)
+	    return c;
+	    else
+	    return Distance(p,ptoseg(p,L));
+	}
+}
+class Dijkstra{
+	public double INF=2100000000.0;
+	public class edge{
+		public long to,id;
+		public int next;
+		public double len;
+	}
+	public class Path{
+		public Path(){}
+		public Path(long x,long y){
+			this.preP=x;
+			this.preL=y;
+		}
+		public long preP,preL;
+	}
+	public class node implements Comparable <node>{
+		public long to;
+		public double len;
+		public node(){}
+		public node(long To,double Len){
+			this.to=To;
+			this.len=Len;
+		}
+		public int compareTo(node other) {
+			if(this.len<other.len)
+				return -1;
+			return 1;
+		}
+	}
+	public class fromto implements Comparable <fromto>{//用于优化
+		public long from,to;
+		public fromto(){}
+		public fromto(long a,long b){
+			this.from=a;
+			this.to=b;
+		}
+		public int compareTo(fromto other) {
+			if(this.from==other.from)
+				return this.to<other.to?-1:1;
+			return this.from<other.from?-1:1;
+		}
+	}
+	public Algorithm Alg;//算法类
+	public Random rand;
+	public edge[] e;//链式前向星数组
+	public HashMap<Long,Integer> box,vis;
+	public HashMap<Long,Double> dis;
+	public HashMap<Long,Path> px;
+	public HashMap<Long,Long> flag;
+	public TreeMap<fromto,Double> shortestPath;
+	public int cnt;//边数量 
+	public Dijkstra(){}
+	public Dijkstra(MapLoc mymp){
+		rand=new Random();
+		int lnum=mymp.LineNum*2+10;
+		e=new edge[lnum];
+		for(int i=0;i<lnum;i++){
+			e[i]=new edge();
+		}
+		box=new HashMap<Long,Integer>();
+		vis=new HashMap<Long,Integer>();
+		dis=new HashMap<Long,Double>();
+		px=new HashMap<Long,Path>();
+		flag=new HashMap<Long,Long>();
+		shortestPath=new TreeMap<fromto,Double>();
+		cnt=0;
+		Alg=new Algorithm();
+		BuildMap(mymp);
+	}
+	public void Init(MapLoc mymp){
+		for(Long id : mymp.PointSet.keySet()){//遍历点集合中的点数据
+			box.put(id,-1);
+			vis.put(id,0);
+			dis.put(id,INF);
+			px.put(id,new Path(-1,-1));
+			flag.put(id,(long)-1);
+		}
+		cnt=0;
+	}
+	public void Add(long from,long to,double len,long id){
+		e[cnt].to=to;
+		e[cnt].id=id;
+		e[cnt].len=len;
+		e[cnt].id=id;
+		e[cnt].next=box.get(from);
+		box.put(from, cnt);
+		cnt++;
+	}
+	public void BuildMap(MapLoc mymp){
+		Init(mymp);
+		for(Long id:mymp.LineSet.keySet()){
+			Line line=mymp.LineSet.get(id);
+			long from=line.pid[0];
+			long to=line.pid[1];
+			double len=line.length;
+			Add(from,to,len,id);
+			Add(to,from,len,id);
+		}
+		//System.out.println("Pointnum = "+mymp.PointNum);
+		//System.out.println("连通分量数"+connectNum(mymp));
+		//System.out.println(cnt);
+	}
+	public double Min(double a,double b){
+		return a<b?a:b;
+	}
+	public long Fabs(long x){
+		return x>0?x:-x;
+	}
+	public HashMap<Long,Integer> Vis;
+	public int dfs(long now,long T){//判断地图是否联通
+		if(now==T)return 1;
+		Vis.put(now,1);
+		for(int t=box.get(now);t!=-1;t=e[t].next){
+			long v=e[t].to;
+			if(Vis.get(v)==0){
+				if(dfs(v,T)==1)
+					return 1;
+			}
+		}
+		return 0;
+	}
+	public int dfs(long now){
+		int sum=1;
+		Vis.put(now,1);
+		for(int t=box.get(now);t!=-1;t=e[t].next){
+			long v=e[t].to;
+			if(Vis.get(v)==0){
+				sum+=dfs(v);
+			}
+		}
+		return sum;
+	}
+	public int connectNum(MapLoc mymp){
+		Vis=new HashMap<Long,Integer>();
+		int num=0;
+		for(long id:mymp.PointSet.keySet()){
+			Vis.put(id,0);
+		}
+		for(Long id:mymp.PointSet.keySet()){
+			if(Vis.get(id)==0){
+				System.out.println("connection "+(num+1)+" = "+dfs(id));
+				num++;
+			}
+		}
+		return num;
+	}
+	public int isok(MapLoc mymp,long S,long T){//判断图是否联通
+		Vis=new HashMap<Long,Integer>();
+		for(long id:mymp.PointSet.keySet()){
+			Vis.put(id,0);
+		}
+		if(dfs(S,T)==1)
+			return 1;
+		return 0;
+	}
+	public double Solve(MapLoc mymp,long S,long T){//求S到T的最短路 避免初始化
+		if(S==T)
+			return 0.0;
+		//System.out.println(isok(mymp,S,T));
+		Queue<node> pq =  new PriorityQueue<node>();
+		long tmp=Fabs(rand.nextLong());
+		dis.put(S,0.0);
+		flag.put(S,tmp);
+		vis.put(S, 0);
+		pq.add(new node(S,0.0));
+		while(!pq.isEmpty()){
+			node now=pq.poll();
+			long po=now.to;
+			if(flag.get(po)==tmp&&vis.get(po)==1){
+				//System.out.println("f");
+				continue;
+			}
+			vis.put(po,1);
+			flag.put(po,tmp);
+			for(int t=box.get(po);t!=-1;t=e[t].next){
+				long v=e[t].to;
+				double len=e[t].len;
+				if(flag.get(v)!=tmp||(len+now.len<dis.get(v))){
+					dis.put(v,len+now.len);
+					px.put(v,new Path(po,e[t].id));
+					if(v==T){
+						shortestPath.put(new fromto(S,T),len+now.len);//将从S到T的最短距离存到shortestPath中
+						shortestPath.put(new fromto(T,S),len+now.len);//将从T到S的最短距离存到shortestPath中
+						return len+now.len;
+					}
+					pq.add(new node(v,len+now.len));
+				}
+			}
+		}
+		//if(isok(mymp,S,T)==0)
+		//	System.out.println("然而图并不联通 ");
+		//System.out.println("你看不见我，你看不见我！！！");
+		return INF;
+	}
+	
+	public double GetDisAtoB(MapLoc mymp,Point a,Line La,Point b,Line Lb){//得到从
+		Point x=Alg.ptoseg(a, La);
+		Point y=Alg.ptoseg(b, Lb);
+		if(La.index==Lb.index){
+			return Alg.Distance(x, y);
+		}
+		double mi= INF;
+		for(int i=0;i<2;i++){
+			for(int j=0;j<2;j++){
+				double tmp=Alg.Distance(x, La.p[i]);//从x到弧La的一个端点
+				if(shortestPath.get(new fromto(La.pid[i],Lb.pid[j]))==null)//如果以前没有计算过S到T的距离，则计算，否则直接从shortestpath中查询即可
+					tmp+=Solve(mymp,La.pid[i],Lb.pid[j]);
+				else
+					tmp+=shortestPath.get(new fromto(La.pid[i],Lb.pid[j]));
+				tmp+=Alg.Distance(Lb.p[j],y);//从弧Lb的一个端点到y
+				mi=Min(mi,tmp);
+			}
+		}
+		return mi;
+	}
+	public void GetOrbit(long S,long T,Vector<Long> orbit){
+		orbit.clear();
+		long now=T;
+		while(now!=S){
+			orbit.add(px.get(now).preL);
+			now=px.get(now).preP;
+		}
+		int size=orbit.size();
+		int n=size/2;
+		for(int i=0;i<n;i++){
+			long tmp=orbit.get(i);
+			orbit.set(i, orbit.get(size-i-1));
+			orbit.set(size-i-1, tmp);
+		}
+	}
+	public double GetOrbitAtoB(MapLoc mymp,Point a,Line La,Point b,Line Lb,Vector<Long> orbit){
+		Vector<Long> tmpOrbit=new Vector<Long>();
+		orbit.clear();
+		orbit.add(La.index);//首先加上第一条弧的标号
+		Point x=Alg.ptoseg(a, La);
+		Point y=Alg.ptoseg(b, Lb);
+		if(La.index==Lb.index){
+			return Alg.Distance(x, y);
+		}
+		double mi= INF;
+		for(int i=0;i<2;i++){
+			for(int j=0;j<2;j++){
+				double tmp=Alg.Distance(x, La.p[i]);//从x到弧La的一个端点
+				tmp+=Solve(mymp,La.pid[i],Lb.pid[j]);
+				tmp+=Alg.Distance(Lb.p[j],y);//从弧Lb的一个端点到y
+				if(tmp<mi){
+					mi=tmp;
+					GetOrbit(La.pid[i],Lb.pid[j],tmpOrbit);
+				}
+			}
+		}
+		int size=tmpOrbit.size();
+		for(int i=0;i<size;i++){
+			long now=tmpOrbit.get(i);
+			if(now!=La.index&&now!=Lb.index)
+				orbit.add(now);
+		}
+		orbit.add(Lb.index);
+		return mi;
+	}
+}
+
+
+class Hmm{
+	double VARIANCE=50.0;
+	double PI=3.141592653589793238462643383279502884;
+	double INF=2100000000.0;
+	double LIMITDIS=100.0;
+	public Dijkstra Dij;
+	public int MIDNUM=10;
+	public Algorithm Alg;
+	public Vector<Vector<Long> > legalline;//可行弧
+	public Vector<Vector<Double> > distoline;//到可行弧的距离
+	public Hmm(){
+		Alg=new Algorithm();
+	}
+	public Hmm(Dijkstra dij){
+		Alg=new Algorithm();
+		this.Dij=dij;
+	}
+	public double Min(double a,double b){
+		return a<b?a:b;
+	}
+	public double Fabs(double x){
+		return x<0?-x:x;
+	}
+	/*public double GetP(double len){
+		double x=1/(VARIANCE*Math.sqrt(PI*2));
+		double y=Math.exp(-(len/VARIANCE)*(len/VARIANCE)/2.0);
+		double P=Min(x*y,1.0);
+		return Math.log(P);
+	}*/
+	public double GetP(double len){
+		double x=1/(VARIANCE*Math.sqrt(PI*2));
+		double y=Math.exp(-(len/VARIANCE)*(len/VARIANCE)/2.0);
+		double P=Min(x*y,1.0);
+		return  P;
+	}
+	public double GetTransP(Point u,long from,Point v,long to,MapLoc mymp){
+		double dt=Dij.GetDisAtoB(mymp, u, mymp.LineSet.get(from), v, mymp.LineSet.get(to));
+		double len=Alg.Distance(u,v);
+		dt=-Fabs(dt-len)*10/VARIANCE;
+		double transp=Math.exp(dt);
+		return transp;
+	}
+	/*public double GetTransP(Point u,long from,Point v,long to,MapLoc mymp){
+		double dt=Dij.GetDisAtoB(mymp, u, mymp.LineSet.get(from), v, mymp.LineSet.get(to));
+		double len=Alg.Distance(u,v);
+		dt=Fabs(dt-len);
+		double transp=-dt/2;
+		return transp;
+	}*/
+	public void Balance(Map<Long,Double> dp){
+		double sum=0.0;
+		for(long id:dp.keySet()){
+			sum+=dp.get(id);
+		}
+		for(long id:dp.keySet()){
+			double tmp=dp.get(id);
+			dp.put(id, tmp/sum);
+			//System.out.print(tmp/sum*100+"% ");
+		}
+		//System.out.println("");
+	}
+	public void GetPath(Vector<Point> poset,int st,int ed,MapLoc mymp,long preline,Vector<Long> path){
+		//System.out.println("helloworld");
+		int n=ed-st+1;
+		Map<Long,Double>[] dp=new Map[n];
+		Map<Long,Long>[] pre=new Map[n];
+		for(int i=0;i<n;i++){
+			dp[i]=new HashMap<Long,Double>();
+			pre[i]=new HashMap<Long,Long>();
+		}
+		int size=0;
+		for(int i=0;i<n;i++){
+			size=legalline.get(i+st).size();
+			for(int j=0;j<size;j++){
+				long id=legalline.get(i+st).get(j);
+				dp[i].put(id,0.0);
+				pre[i].put(id, (long)-1);
+			}
+		}
+		size=legalline.get(st).size();
+		for(int i=0;i<size;i++){
+			long id=legalline.get(st).get(i);
+			double len=distoline.get(st).get(i);
+			dp[0].put(id, GetP(len));
+			if(preline!=-1){
+				double tmp=dp[0].get(id);
+				dp[0].put(id,tmp*GetTransP(poset.get(st-1),preline,poset.get(st),id,mymp));
+			}
+		}
+		Balance(dp[0]);
+		for(int i=st+1;i<=ed;i++){
+			int s1=legalline.get(i-1).size();
+			for(int j=0;j<s1;j++){//枚举起点
+				long id1=legalline.get(i-1).get(j);
+				if(dp[i-st-1].get(id1)>=0.01){
+					int s2=legalline.get(i).size();
+					for(int k=0;k<s2;k++){
+						long id2=legalline.get(i).get(k);
+						double transp=GetTransP(poset.get(i-1),id1,poset.get(i),id2,mymp);
+						double dis=distoline.get(i).get(k);
+						double P=dp[i-st-1].get(id1)*transp*GetP(dis);
+						assert(P>=0.0);
+						if(P>dp[i-st].get(id2)){
+							dp[i-st].put(id2, P);
+							pre[i-st].put(id2, id1);//从id1转移过来
+						}
+					}
+				}
+			}
+			Balance(dp[i-st]);
+		}
+		double ma=-INF;
+		long po=-1;
+		for(long id:dp[n-1].keySet()){
+			double tmp=dp[n-1].get(id);
+			if(tmp>ma){
+				ma=tmp;
+				po=id;
+			}
+		}
+		path.clear();
+		for(int i=n-1;i>=0;i--){
+			path.add(po);
+			//System.out.print(dp[i].get(po)*100+" ");
+			po=pre[i].get(po);
+			
+		}
+		//System.out.println("");
+		for(int i=0;i<n/2;i++){//翻转路径序列
+			long tmp=path.get(i);
+			path.set(i, path.get(n-i-1));
+			path.set(n-i-1,tmp);
+		}
+	}
+	
+	public void solve(MapLoc mymp,Car car,Vector<Long> orbit){
+		legalline=new Vector<Vector<Long>>();
+		distoline=new Vector<Vector<Double>>();
+		
+		int ponum=car.PointNum;
+		/*for(int i=1;i<ponum;i++){
+			System.out.println(Alg.Distance(car.PointSet.get(i-1), car.PointSet.get(i)));
+		}*/
+		for(int i=0;i<ponum;i++){
+			Vector<Long> lgline=new Vector<Long>();
+			Vector<Double> disline =new Vector<Double>();
+			for(Long id:mymp.LineSet.keySet()){
+				double dis=Alg.disptoseg(car.PointSet.get(i), mymp.LineSet.get(id));
+				if(dis<LIMITDIS){
+					lgline.add(id);
+					disline.add(dis);
+				}
+			}
+			legalline.add(lgline);
+			distoline.add(disline);
+		}
+		int l=0,r=ponum-1,size=0;
+		long preline=-1;
+		while(l<=r){
+			Vector<Long> tmpath=new Vector<Long>();
+			GetPath(car.PointSet,l,r,mymp,preline,tmpath);
+			size=tmpath.size();
+			for(int i=0;i<size;i++){
+				orbit.add(tmpath.get(i));
+			}
+			preline=tmpath.get(size-1);
+			l=r+1;
+			r+=MIDNUM;
+			if(r>=ponum)r=ponum-1;
+		}
+	}
+}
+
+class TrafficEstimate{//路况估计算法
+	   public HashMap<Long,Vector<Double> > speedset;
+	   public Dijkstra Dij;
+	   public TrafficEstimate(){
+		   speedset=new HashMap<Long,Vector<Double>>();
+	   }
+	   public TrafficEstimate(MapLoc mymp){
+		   speedset=new HashMap<Long,Vector<Double>>();//初始化speedset
+	       for(Long id:mymp.LineSet.keySet()){
+	    	   speedset.put(id, new Vector<Double>());
+	       }
+	   }
+	   void CalSpeed(MapLoc mymp,Car car,Vector<Long> nowpath){//根据一辆车的轨迹估计弧的速度
+	      Vector<Double> timeset=car.TimeSet;//时间序列
+	      Vector<Point> pointset=car.PointSet;//点序列
+	      double length=0,time=0;
+	      long nowline=nowpath.get(0);
+	      int left=0,right=0,size=nowpath.size();
+	       for(int i=1;i<size;i++){//计算速度
+	           //相邻两条匹配弧相同
+	           if(nowpath.get(i)==nowline){
+	               right=i;
+	           }
+	           else{//相邻两条匹配弧不相同
+	               //计算同一条弧上的距离
+	               long nextline=nowpath.get(i);
+	               if(left==right){//只有一个点
+	                   length=Dij.GetDisAtoB(mymp,pointset.get(left),mymp.LineSet.get(nowpath.get(left)),pointset.get(i),mymp.LineSet.get(nowpath.get(i)));
+	                   time=timeset.get(i)-timeset.get(left);
+	               }
+	               else{//在nowline上有多个点
+	                   length=Dij.GetDisAtoB(mymp,pointset.get(left),mymp.LineSet.get(nowpath.get(left)),pointset.get(right),mymp.LineSet.get(nowpath.get(right)));
+	                   time=timeset.get(right)-timeset.get(left);
+	               }
+	               assert(time>0);
+	               length/=time;
+	               //System.out.println(nowline+" "+length);
+	               speedset.get(nowline).add(length);
+	               //计算相邻不同弧之间的速度
+	               Vector<Long> Orbit=new Vector<Long>();
+	               length=Dij.GetOrbitAtoB(mymp,pointset.get(i-1),mymp.LineSet.get(nowpath.get(i-1)),pointset.get(i),mymp.LineSet.get(nowpath.get(i)),Orbit);
+	               time=timeset.get(i)-timeset.get(i-1);
+	               assert(time>0);
+	               length/=time;
+	               int siz=Orbit.size();
+	               for(int j=0;j<siz;j++){
+	                   long now=Orbit.get(j);
+	                   if(now!=nowline){
+	                       speedset.get(nowline).add(length);
+	                   }
+	               }
+	               nowline=nextline;
+	               left=right=i;
+	           }
+	       }
+	       if(left==size-1&&left!=0)
+	    	   left--;
+	       length=Dij.GetDisAtoB(mymp,pointset.get(left),mymp.LineSet.get(nowpath.get(left)),pointset.get(size-1),mymp.LineSet.get(nowpath.get(size-1)));//这里求的是最短路
+	       time=timeset.get(size-1)-timeset.get(left);
+	       if(time>0){
+	           length/=time;
+	           speedset.get(nowline).add(length);
+	       }
+	   }
+	   public double GetSpeed(Vector<Double> spd){
+	        int size=spd.size();
+	        if(size==0)return -1.0;
+	        Collections.sort(spd);
+	        //对Vector 排序
+	        return spd.get(size/2);//返回中位数
+	   }
+	   public void SimulationStart(MapLoc mymp,Car car,Vector<LineSpeed> ret){//仿真开始
+	      Vector<Long> orbit=new Vector<Long>();
+	      Dij=new Dijkstra(mymp);
+	      Hmm hmm=new Hmm(Dij);
+	      hmm.solve(mymp,car,orbit);
+	      CalSpeed(mymp,car,orbit);
+	      for(Long id:speedset.keySet()){
+	    	  double speed=GetSpeed(speedset.get(id));
+	    	  //System.out.println(speed);
+	    	  if(speed>0){
+	    		  ret.add(new LineSpeed(id,speed));
+	    	  }
+	      }
+	   }	   
+}
+
+class Estimate{
+	public void StreetEstimate(MapLoc mymp,Car car,Vector<Long> orbit){//返回匹配道路
+	    Dijkstra Dij=new Dijkstra(mymp);
+	    Hmm hmm=new Hmm(Dij);
+	    hmm.solve(mymp,car,orbit);
+	}
+	public void SpeedEstimate(MapLoc mymp,Car car,Vector<LineSpeed> ret){//返回匹配弧速度
+	    TrafficEstimate TE=new TrafficEstimate(mymp);
+	    TE.SimulationStart(mymp,car,ret);
+	}
+}
+
