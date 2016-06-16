@@ -42,11 +42,6 @@ public class Hmm {
 
 	public double GetP(double len) {// 状态概率 (改为return 1)
 		return 1.0;
-		/*
-		 * double x=1/(VARIANCE*Math.sqrt(PI*2)); double
-		 * y=Math.exp(-(len/VARIANCE)*(len/VARIANCE)/2.0); double
-		 * P=Min(x*y,1.0); return P;
-		 */
 	}
 
 	public double GetTransP(Point u, long from, Point v, long to, MapLoc mymp) { // 转移概率

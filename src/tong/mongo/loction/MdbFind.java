@@ -173,80 +173,77 @@ public class MdbFind {
 	}
 	public static void CarLocate(Car mycar){ // 返回车的定位轨迹坐标
 		CarInformation carAzi = new CarInformation();
-		if(ERRORESTIMATE){//如果需要进行误差评价
-			Car GpsCar = carAzi.getCar(mycar,5,true);//这里取得是GPS定位的点（认为这个匹配轨迹是车真实的轨迹，试验用）
-			getpath(GpsCar,GpsstreetSet,true);//计算真实路径
-		}
-		mycar = carAzi.getCar(mycar,INTERVALNUM,USEGPS); //误差过滤后并且根据具体情况选取点（TA和GPS各不相同）
-		getpath(mycar,allstreetSet,USEGPS);
-		
-//		mycar = carAzi.getCar(mycar,INTERVALNUM,USEGPS); //误差过滤后并且根据具体情况选取点（TA和GPS各不相同）
-//		int experiment=0;//试验用
-//		long preline=-1;//上一次匹配的结果弧段
-//		///////////////给一组car赋值(一组为30个)///////////////////////
-//		System.out.println("pointnum = "+mycar.PointNum);
-//		for(int count = 0 ; count < mycar.PointNum ; count+=ONCE_NUM){
-//			experiment++;
-//			if(experiment>=startpoint&&experiment<=endpoint){//如果在调试区间内，则进行计算
-//				int mycurrnum = 0;
-//				Vector<Vector<Long>> legalline = new Vector<Vector<Long>>();//候选集
-//				Vector<AnchorPoint> PointSet = new Vector<AnchorPoint>();//基站坐标
-//				Vector<Point> GpsSet = new Vector<Point>();//GPS坐标
-//				Vector<Long> PciSet = new Vector<Long>();
-//				Vector<Integer> TimeSet = new Vector<Integer>();//时间值		
-//				for(int i = count ; i< count+ONCE_NUM && i< mycar.PointNum; i++){
-//					PointSet.add(mycar.getAnchorPoint(i));//得到基站坐标
-//					PciSet.add(mycar.getPci(i));//加入基站ID
-//					GpsSet.add(mycar.getGpsPoint(i));//得到GPS坐标
-//					TimeSet.add(mycar.getTime(i));//加入时间
-//					mycurrnum ++;
-//				}	
-//				Car currcar = new Car(mycurrnum,legalline,PointSet,GpsSet,PciSet,TimeSet); //30个点车
-//				///////////////////////////////////////////////////////////////
-//				//以下取对应轨迹的地图数据
-//				MapLoc mLoc = getMap(currcar.GpsSet,db,0.3);//获取地图
-//				Estimate est = new Estimate();//匹配函数
-//				Vector<Node> street = new Vector<Node>();//TA匹配结果
-//				Vector<Node> GpsStreet = new Vector<Node>();//Gps匹配结果
-//				if(ERRORESTIMATE)
-//					est.StreetEstimate(mLoc,currcar, street,GpsStreet,preline);
-//				else
-//					est.StreetEstimate(mLoc, currcar, street, preline,USEGPS); //调用匹配算法
-//				////////////////将上一次匹配的最后一条弧段当做下一次匹配的第一个匹配弧/////////////////////////
-//				if(street.size()>0){
-//					preline = street.get(street.size()-1).lineid;
-//				}
-//				else
-//					preline = -1;
-//				if(DEBUG){
-//					currcar.debug();
-//					System.out.println("preline = "+preline);
-//				}
-//				allstreetSet.addAll(street); //加入street
-//				GpsstreetSet.addAll(GpsStreet);
-//				if(street.size()==0){ //如果当前没有匹配到结果，则还需要进一步处理
-//					//System.out.println("没有匹配到street!!!!!!!!!!!"+" experiment = "+experiment);
-//					//currcar.debug();
-//				}
-//			}
+//		if(ERRORESTIMATE){//如果需要进行误差评价
+//			Car GpsCar = carAzi.getCar(mycar,5,true);//这里取得是GPS定位的点（认为这个匹配轨迹是车真实的轨迹，试验用）
+//			getpath(GpsCar,GpsstreetSet,true);//计算真实路径
 //		}
+//		mycar = carAzi.getCar(mycar,INTERVALNUM,USEGPS); //误差过滤后并且根据具体情况选取点（TA和GPS各不相同）
+//		getpath(mycar,allstreetSet,USEGPS);
+		
+		mycar = carAzi.getCar(mycar,INTERVALNUM,USEGPS); //误差过滤后并且根据具体情况选取点（TA和GPS各不相同）
+		int experiment=0;//试验用
+		long preline=-1;//上一次匹配的结果弧段
+		///////////////给一组car赋值(一组为30个)///////////////////////
+		System.out.println("pointnum = "+mycar.PointNum);
+		for(int count = 0 ; count < mycar.PointNum ; count+=ONCE_NUM){
+			experiment++;
+			if(experiment>=startpoint&&experiment<=endpoint){//如果在调试区间内，则进行计算
+				int mycurrnum = 0;
+				Vector<Vector<Long>> legalline = new Vector<Vector<Long>>();//候选集
+				Vector<AnchorPoint> PointSet = new Vector<AnchorPoint>();//基站坐标
+				Vector<Point> GpsSet = new Vector<Point>();//GPS坐标
+				Vector<Long> PciSet = new Vector<Long>();
+				Vector<Integer> TimeSet = new Vector<Integer>();//时间值		
+				for(int i = count ; i< count+ONCE_NUM && i< mycar.PointNum; i++){
+					PointSet.add(mycar.getAnchorPoint(i));//得到基站坐标
+					PciSet.add(mycar.getPci(i));//加入基站ID
+					GpsSet.add(mycar.getGpsPoint(i));//得到GPS坐标
+					TimeSet.add(mycar.getTime(i));//加入时间
+					mycurrnum ++;
+				}	
+				Car currcar = new Car(mycurrnum,legalline,PointSet,GpsSet,PciSet,TimeSet); //30个点车
+				///////////////////////////////////////////////////////////////
+				//以下取对应轨迹的地图数据
+				MapLoc mLoc = getMap(currcar.GpsSet,db,0.3);//获取地图
+				Estimate est = new Estimate();//匹配函数
+				Vector<Node> street = new Vector<Node>();//TA匹配结果
+				Vector<Node> GpsStreet = new Vector<Node>();//Gps匹配结果
+				if(ERRORESTIMATE)
+					est.StreetEstimate(mLoc,currcar, street,GpsStreet,preline);
+				else
+					est.StreetEstimate(mLoc, currcar, street, preline,USEGPS); //调用匹配算法
+				////////////////将上一次匹配的最后一条弧段当做下一次匹配的第一个匹配弧/////////////////////////
+				if(street.size()>0){
+					preline = street.get(street.size()-1).lineid;
+				}
+				else
+					preline = -1;
+				if(DEBUG){
+					currcar.debug();
+					System.out.println("preline = "+preline);
+				}
+				allstreetSet.addAll(street); //加入street
+				GpsstreetSet.addAll(GpsStreet);
+				if(street.size()==0){ //如果当前没有匹配到结果，则还需要进一步处理
+					//System.out.println("没有匹配到street!!!!!!!!!!!"+" experiment = "+experiment);
+					//currcar.debug();
+				}
+			}
+		}
 	}
 	
 	//-------------加上过滤器,输出过滤之后的道路中点--------------//
 	public static Vector<Node> outLineWithFilter(OutputFile outer,Vector<Node> Tastreet,boolean UseOut) throws IOException{
 		Vector<Node> LpSet=new Vector<Node>();		
-		PointFilter filter=new PointFilter();
-		ArcInterpolation interpolation =new ArcInterpolation();
+		PostProcess postprocess=new PostProcess();
 		LpSet=Tastreet;
-		LpSet=filter.Filter(Tastreet);//进行一次过滤
-		LpSet=interpolation.Interpolation(LpSet);//补点
-		LpSet=filter.Filter(LpSet);//再进行一次过滤
+		LpSet=postprocess.removeLoops(Tastreet);//进行一次过滤
+		LpSet=postprocess.Interpolation(LpSet);//补点
+		LpSet=postprocess.removeLoops(LpSet);//再进行一次过滤
 		//输出结果到文件中
 		if(UseOut){
 			int size=LpSet.size();
 			for(int i=0;i<size;i++){
-//				if(LpSet.get(i).time==-1)
-//					continue;
 				String currstr = outer.getStrMid(LpSet.get(i).po.x, LpSet.get(i).po.y,LpSet.get(i).lineid);
 				outer.outputToFile(currstr); //输出经纬度
 			}
@@ -271,7 +268,7 @@ public class MdbFind {
 			if(!isFirstPoint){ //如果不是第一个点, 取两相邻点的中点，以两相邻点距离的二分之一为半径
 				latt=(latt+prelat)/2;
 				lngg=(lngg+prelng)/2;
-				radius = (Alg.Distance(latt, lngg, prelat, prelng)+300.0)/1000.0;
+				radius = (Algorithm.Distance(latt, lngg, prelat, prelng)+300.0)/1000.0;
 			}
 			prelat=latt;
 			prelng=lngg;

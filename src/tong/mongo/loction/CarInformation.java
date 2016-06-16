@@ -96,22 +96,22 @@ public class CarInformation {
 //			}
 			double Ta1 =car.getTa(id);
 			double Ta2 =car.getTa(id+1);
-//			if(!Alg.compare(now, next)){//表示这是一个切换点(特殊点)
-//				//首先判断是否时间间隔太大
-//				if(car.getTime(id+1)-car.getTime(id)<=2){//时间间隔相差2s以内认为是切换点（有效）
-//					AnchorPoint Po = new AnchorPoint(1);//切换点（特殊）
-//					sector sec1 = car.getSector(id);
-//					sector sec2 = car.getSector(id+1); 
-//					Po.addPoint(now,Ta1,sec1);
-//					Po.addPoint(next,Ta2,sec2);
-//					resultCar.addPointAll(Po, car.getGpsPoint(id),car.getPci(id),car.getTime(id));
-//					//这里已经取了这个点，所以要将下面的工作
-//					nowid=0;
-////					id++;
-////					nowid=1;
-////					continue;
-//				}
-//			}
+			if(!Alg.compare(now, next)){//表示这是一个切换点(特殊点)
+				//首先判断是否时间间隔太大
+				if(car.getTime(id+1)-car.getTime(id)<=2){//时间间隔相差2s以内认为是切换点（有效）
+					AnchorPoint Po = new AnchorPoint(1);//切换点（特殊）
+					sector sec1 = car.getSector(id);
+					sector sec2 = car.getSector(id+1); 
+					Po.addPoint(now,Ta1,sec1);
+					Po.addPoint(next,Ta2,sec2);
+					resultCar.addPointAll(Po, car.getGpsPoint(id),car.getPci(id),car.getTime(id));
+					//这里已经取了这个点，所以要将下面的工作
+					nowid=0;
+//					id++;
+//					nowid=1;
+//					continue;
+				}
+			}
 //			if(Alg.Fabs(Ta1-Ta2)>50.0){//表示这是一个Ta变化点
 //				AnchorPoint Po = new AnchorPoint();
 //				double distance=Alg.Distance(car.getAnchorPoint(id+1).getPoint(0), car.getGpsPoint(id+1));
@@ -145,7 +145,7 @@ public class CarInformation {
 //				resultCar.addPointAll(Po, car.getGpsPoint(id+1), car.getPci(id+1), car.getTime(id+1));
 //				nowid=0;
 //			}
-			if(nowid%INTERVAL_NUM==0){//普通定位点
+			else if(nowid%INTERVAL_NUM==0){//普通定位点
 				resultCar.addPointAll(car.getAnchorPoint(id), car.getGpsPoint(id), car.getPci(id),car.TimeSet.get(id));
 			}
 			nowid++;
@@ -230,10 +230,9 @@ public class CarInformation {
 		Car resultcar = mycar;
 		Alg = new Algorithm();
 		INTERVAL_NUM=interval;
-		PointFilter Filter = new PointFilter();//过滤算法类
 		if(!isGPS)
 			System.out.println("过滤前点的数量"+mycar.PointNum);
-		resultcar = Filter.ErrorFilter(mycar);//过滤误差点
+		resultcar = PreProcess.ErrorFilter(mycar);//过滤误差点
 		if(!isGPS)
 			System.out.println("过滤后点的数量"+resultcar.PointNum);
 		resultcar = PointChoose(resultcar,isGPS);//选取适当的定位点
