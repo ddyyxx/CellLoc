@@ -3,10 +3,7 @@ package tong.mongo.loction;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.text.ParseException;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
@@ -18,11 +15,8 @@ import tong.mongo.defclass.Node;
 import tong.mongo.defclass.Point;
 
 import com.defcons.MyCons;
-import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
-import com.mongodb.DBCursor;
-import com.mongodb.DBObject;
 import com.mongodb.Mongo;
 
 //main函数所在程序
@@ -45,7 +39,6 @@ public class MdbFind {
 	public static int endpoint = 100; //调试终点
 	public static boolean GPSOUTPUT = false; // true： 显示GPS结果 false 显示Ta匹配结果
 	public static boolean PrintDriveOrbit= false;
-	private static Algorithm Alg;
 	public static double Talength=0.0;
 	public static double Gpslength=0.0;
 	public static double LCSlength=0.0;
@@ -70,7 +63,6 @@ public class MdbFind {
 		outfilename = MyCons.CarfileDir+"road_poi//JSON_roadinfo_"+filename;
 		allstreetSet = new Vector<Node>();	//道路id集合
 		GpsstreetSet = new Vector<Node>();  //真实道路集合
-		Alg = new Algorithm();
 		connection = null;
 		db = null;
 		dbcoll = null;
@@ -100,7 +92,7 @@ public class MdbFind {
 		Car mycar ;
 		mycar = carAzi.readFileSolution(filename,map_lteloc,TRUETA);//得到完整的车的轨迹
 		if(PrintDriveOrbit){
-			getMap(mycar.GpsSet,db,0.5);
+			Algorithm.getMap(mycar.GpsSet,db,0.5);
 			return;
 		}
 		CarLocate(mycar);
@@ -149,7 +141,7 @@ public class MdbFind {
 				Car currcar = new Car(mycurrnum,legalline,PointSet,GpsSet,PciSet,TimeSet); //30个点车
 				///////////////////////////////////////////////////////////////
 				//以下取对应轨迹的地图数据
-				MapLoc mLoc = getMap(currcar.GpsSet,db,0.3);//获取地图
+				MapLoc mLoc = Algorithm.getMap(currcar.GpsSet,db,0.3);//获取地图
 				Estimate est = new Estimate();//匹配函数
 				Vector<Node> street = new Vector<Node>();//TA匹配结果	
 				est.StreetEstimate(mLoc, currcar, street, preline,isGPS); //调用匹配算法
@@ -204,7 +196,7 @@ public class MdbFind {
 				Car currcar = new Car(mycurrnum,legalline,PointSet,GpsSet,PciSet,TimeSet); //30个点车
 				///////////////////////////////////////////////////////////////
 				//以下取对应轨迹的地图数据
-				MapLoc mLoc = getMap(currcar.GpsSet,db,0.3);//获取地图
+				MapLoc mLoc = Algorithm.getMap(currcar.GpsSet,db,0.3);//获取地图
 				Estimate est = new Estimate();//匹配函数
 				Vector<Node> street = new Vector<Node>();//TA匹配结果
 				Vector<Node> GpsStreet = new Vector<Node>();//Gps匹配结果
@@ -249,91 +241,5 @@ public class MdbFind {
 			}
 		}
 		return LpSet;//返回最后的匹配结果
-	}
-	
-	//-------------------获取点集合周围的道路点和弧-------------------------//
-	@SuppressWarnings("unchecked")
-	public static MapLoc getMap(Vector<Point> pointSet, DB db ,double radius){ //调用的时候再加上一个db即可
-		MapLoc mLoc = new MapLoc(); //存放搜索的结果
-		HashMap<Long, Point> pMap = new HashMap<Long, Point>(); //存放点集合
-		HashMap<Long, Line> lMap = new HashMap<Long, Line>();	//存放弧集合
-		List<Long> aList = new LinkedList<Long>();
-		DBCollection coll = null;
-		DBObject object = null; //数据库的搜索条件
-		boolean isFirstPoint = true;
-		double prelat=0,prelng=0;//前一个点的Gps坐标
-		for(Point currpoi : pointSet){ //如果只有一个点，就按照默认半径进行取点
-			double latt = currpoi.x;
-			double lngg = currpoi.y;
-			if(!isFirstPoint){ //如果不是第一个点, 取两相邻点的中点，以两相邻点距离的二分之一为半径
-				latt=(latt+prelat)/2;
-				lngg=(lngg+prelng)/2;
-				radius = (Algorithm.Distance(latt, lngg, prelat, prelng)+300.0)/1000.0;
-			}
-			prelat=latt;
-			prelng=lngg;
-			isFirstPoint = false;
-			coll = db.getCollection("mapPoint"); //获取点集合
-			object = new BasicDBObject("gis", new BasicDBObject("$within",
-					new BasicDBObject("$center", Arrays.asList(
-							Arrays.asList(latt, lngg), radius / 111.12))));
-			DBCursor cursor = coll.find(object);
-			// 找出一辆车行驶线路范围内的点
-			while (cursor.hasNext()) {
-				DBObject result = cursor.next();
-				Long key = (Long) result.get("_id");
-	
-				if (!pMap.containsKey(key)) {
-					Point p = new Point();
-					Map<String, Double> m = (Map<String, Double>) result.get("gis");
-					List<Long> list = (List<Long>) result.get("edge");
-					Vector<Long> vtor = new Vector<Long>();
-					vtor.addAll(list);
-					p.id = (Long) result.get("_id");
-					p.x = m.get("lat");
-					p.y = m.get("lon");
-					pMap.put(key, p);
-	
-					for (long v : vtor) { //将包含当前点的弧的ID放进list
-						if (!aList.contains(v))
-							aList.add(v);
-					}
-				}
-			}//END WHILE
-			// 找出一辆车行驶线路范围内的线段
-			coll = db.getCollection("mapArc");
-			cursor = coll.find(new BasicDBObject("_id", new BasicDBObject("$in", aList)));
-	
-			while (cursor.hasNext()) {
-				DBObject result = cursor.next();
-				Long key = (Long) result.get("_id");
-	
-				if (!lMap.containsKey(key)) {
-					Line l = new Line();
-					long id = (Long) result.get("_id");
-					Map<String, Long> m = (Map<String, Long>) result.get("gis");
-					double length = (Double) result.get("length");
-					long strid = (Long) result.get("wayid");
-					l.index = id;
-					l.pid[0] = m.get("x");
-					l.pid[1] = m.get("y");
-					
-					l.length = length;
-					l.strid = strid;
-					if (pMap.containsKey(l.pid[0])&& pMap.containsKey(l.pid[1])) {
-						l.p[0] = pMap.get(l.pid[0]);
-						l.p[1] = pMap.get(l.pid[1]);
-						if(PrintDriveOrbit)
-							DriveMap.put(key, l);
-						lMap.put(key, l);
-					}
-				}
-			}//END WHILE
-		}
-		mLoc.PointNum = pMap.size();
-		mLoc.LineNum = lMap.size();
-		mLoc.PointSet = pMap;
-		mLoc.LineSet = lMap;
-		return mLoc;		
 	}
 }

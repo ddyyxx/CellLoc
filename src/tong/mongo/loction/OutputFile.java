@@ -17,7 +17,6 @@ public class OutputFile {
 		}
 		writer = new BufferedWriter(new FileWriter(file));
 	}
-	
 
 	//-----------返回一组经纬度-------------
 	public String getStrMid(double mid_lat , double mid_lon, long lineid){ 

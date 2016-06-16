@@ -10,7 +10,6 @@ import tong.mongo.defclass.Line;
 import tong.mongo.defclass.Node;
 import tong.mongo.defclass.Point;
 
-import com.defcons.MyCons;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
@@ -21,7 +20,8 @@ import com.mongodb.Mongo;
 public class ErrorEstimate {
 	//--------将TA匹配轨迹与GPS匹配轨迹进行对比。。匹配精确度----------//
 	public static void main(String[] args) throws UnknownHostException{
-		 Mongo connection = new Mongo("127.0.0.1:27017");
+		 @SuppressWarnings("deprecation")
+		Mongo connection = new Mongo("127.0.0.1:27017");
 		 DB db=connection.getDB("MapLoc");
 		 Line nowline=GetLine(146482998334113862L,db);
 		 nowline.print();
@@ -117,7 +117,6 @@ public class ErrorEstimate {
 		}
 		
 		public static void DisError(Vector<Node> TaOrbit,Vector<Node> GpsOrbit,Car Gpscar,DB db) throws IOException{//对比Ta匹配结果与测量GPS坐标，标准（欧式距离）
-			Alg =new Algorithm();
 			int n=TaOrbit.size(),m=GpsOrbit.size(),l=0,r=0,po=0,num=0;
 //			OutputFile output = new OutputFile();
 //			output.init(MyCons.CarfileDir+"DisError//Error_"+MdbFind.filename);
@@ -143,8 +142,8 @@ public class ErrorEstimate {
 						}
 						Point nowp = Gpscar.getGpsPoint(po);
 						Line trueLine = GetLine(Gps.lineid,db);
-						Point Gpspoint = Alg.MinDistPtoLine(nowp,trueLine);
-						double dist =Alg.Distance(Ta.po, Gpspoint);
+						Point Gpspoint = Algorithm.MinDistPtoLine(nowp,trueLine);
+						double dist =Algorithm.Distance(Ta.po, Gpspoint);
 						Error+=dist;
 						if(Ta.lineid==Gps.lineid)
 							MdbFind.diserrorOut.outputToFile(String.valueOf(dist)+'\n');
@@ -187,5 +186,4 @@ public class ErrorEstimate {
 			Double length= (Double) arcobject.get("length");
 			return length;
 		}
-		public static Algorithm Alg;
 }

@@ -19,12 +19,9 @@ public class HmmGps{
 	double MAXDIS=15.0;//候选集半径
 	public Graph Dij;
 	public int MIDNUM=15;
-	public Algorithm Alg;
-	public HmmGps(){
-		Alg=new Algorithm();
-	}
+	
+	public HmmGps(){}
 	public HmmGps(Graph dij){
-		Alg=new Algorithm();
 		this.Dij=dij;
 	}
 	public double Min(double a,double b){
@@ -41,7 +38,7 @@ public class HmmGps{
 		return  P;
 	}
 	public double GetTransP(Point u,long from,Point v,long to,MapLoc mymp){ //转移概率
-		double len=Alg.Distance(u,v);//直线距离
+		double len=Algorithm.Distance(u,v);//直线距离
 		double dt=Dij.GetDisAtoB(mymp, u, mymp.getLine(from), v, mymp.getLine(to),len,false);
 		//double dt=Dij.GetDisAtoB(mymp, u, mymp.LineSet.get(from), v, mymp.LineSet.get(to));//最短路距离
 		if(dt==INF)//如果不连通，则返回0
@@ -82,7 +79,7 @@ public class HmmGps{
 		for(int i=0;i<size;i++){//处理第一个点的状态概率
 			long id=car.legalline.get(st).get(i);
 			Point point=car.getGpsPoint(st);
-			double len=Alg.disptoseg(point, mymp.getLine(id));
+			double len=Algorithm.disptoseg(point, mymp.getLine(id));
 			dp[0].put(id, GetP(len));
 		}
 		Balance(dp[0]);
@@ -97,7 +94,7 @@ public class HmmGps{
 						long id2=car.legalline.get(i).get(k);//终点弧段
 						Point p2=car.getGpsPoint(i);
 						double transp=GetTransP(p1,id1,p2,id2,mymp);//转移概率
-						double dis=Alg.disptoseg(p2, mymp.getLine(id2));//点p2到弧id2的距离
+						double dis=Algorithm.disptoseg(p2, mymp.getLine(id2));//点p2到弧id2的距离
 						double P=dp[i-st-1].get(id1)*transp*GetP(dis);
 						assert(P>=0.0);
 						if(P>dp[i-st].get(id2)){
@@ -142,7 +139,7 @@ public class HmmGps{
 			Point p1=car.getGpsPoint(i);//Gps坐标点
 			for(Long id:mymp.LineSet.keySet()){
 				//x,y分别是弧的两个点
-				if(Alg.disptoseg(p1, mymp.getLine(id))<MAXDIS){//弧到点的距离小于20米则加入候选集
+				if(Algorithm.disptoseg(p1, mymp.getLine(id))<MAXDIS){//弧到点的距离小于20米则加入候选集
 					lgline.add(id);//加入候选集
 				}
 			}

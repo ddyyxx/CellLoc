@@ -13,7 +13,6 @@ import tong.mongo.defclass.Point;
 
 public class Graph{//
 
-	public Algorithm Alg;//算法类
 	public Random rand;
 	public edge[] e;//链式前向星数组
 	public HashMap<Long,Integer> box,vis,inc;
@@ -49,7 +48,6 @@ public class Graph{//
 		shortestPath=new HashMap<fromto,Double>();
 		Pathchange=new HashMap<fromto,Integer>();
 		cnt=0;
-		Alg=new Algorithm();
 		BuildMap(mymp);//建图
 	}
 	public class edge{//边类
@@ -245,10 +243,10 @@ public class Graph{//
 	}
 	public double GetDisAtoB(MapLoc mymp,Point a,Line La,Point b,Line Lb,double len,boolean useTa){//得到从
 
-		Point x=Alg.ptoseg(a, La);//弧La上到点a最近的点
-		Point y=Alg.ptoseg(b, Lb);//弧Lb上到点b最近的点
+		Point x=Algorithm.ptoseg(a, La);//弧La上到点a最近的点
+		Point y=Algorithm.ptoseg(b, Lb);//弧Lb上到点b最近的点
 		if(La.index==Lb.index){
-			return Alg.Distance(x, y);
+			return Algorithm.Distance(x, y);
 		}
 		double mi= INF;
 		int add=0,chnum=0;
@@ -257,13 +255,13 @@ public class Graph{//
 		}
 		for(int i=0;i<2;i++){
 			for(int j=0;j<2;j++){
-				double tmp=Alg.Distance(x, La.p[i]);//从x到弧La的一个端点
+				double tmp=Algorithm.Distance(x, La.p[i]);//从x到弧La的一个端点
 				if(shortestPath.get(new fromto(La.pid[i],Lb.pid[j]))==null)//如果以前没有计算过S到T的距离，则计算，否则直接从shortestpath中查询即可
 					tmp+=Solve(mymp,La.pid[i],Lb.pid[j]);
 				else{
 					tmp+=shortestPath.get(new fromto(La.pid[i],Lb.pid[j]));
 				}
-				tmp+=Alg.Distance(Lb.p[j],y);//从弧Lb的一个端点到y
+				tmp+=Algorithm.Distance(Lb.p[j],y);//从弧Lb的一个端点到y
 				if(tmp<mi){
 					mi=tmp;
 					int Num=0;
@@ -299,17 +297,17 @@ public class Graph{//
 		Vector<Long> tmpOrbit=new Vector<Long>();
 		orbit.clear();
 		orbit.add(La.index);//首先加上第一条弧的标号
-		Point x=Alg.ptoseg(a, La);
-		Point y=Alg.ptoseg(b, Lb);
+		Point x=Algorithm.ptoseg(a, La);
+		Point y=Algorithm.ptoseg(b, Lb);
 		if(La.index==Lb.index){
-			return Alg.Distance(x, y);
+			return Algorithm.Distance(x, y);
 		}
 		double mi= INF;
 		for(int i=0;i<2;i++){
 			for(int j=0;j<2;j++){
-				double tmp=Alg.Distance(x, La.p[i]);//从x到弧La的一个端点
+				double tmp=Algorithm.Distance(x, La.p[i]);//从x到弧La的一个端点
 				tmp+=Solve(mymp,La.pid[i],Lb.pid[j]);
-				tmp+=Alg.Distance(Lb.p[j],y);//从弧Lb的一个端点到y
+				tmp+=Algorithm.Distance(Lb.p[j],y);//从弧Lb的一个端点到y
 				if(tmp<mi){
 					mi=tmp;
 					GetOrbit(La.pid[i],Lb.pid[j],tmpOrbit);

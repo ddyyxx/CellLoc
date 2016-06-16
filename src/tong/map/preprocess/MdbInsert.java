@@ -5,7 +5,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -24,17 +23,7 @@ import com.mongodb.Mongo;
 /// 将地图数据插入到数据库当中
 public class MdbInsert {
 
-	static Mongo connection = null;
-	static DB db = null;
-
-	@SuppressWarnings("deprecation")
-	public MdbInsert(String dataBaseName) throws UnknownHostException {
-		connection = new Mongo("127.0.0.1:27017");
-		db = connection.getDB(dataBaseName);
-		db.dropDatabase();
-	}
-
-	public void createCollection(String name) {
+	public static void createCollection(String name,DB db) {
 		// 判断数据集合是否存在，不存在创建数据集合
 		if (!db.collectionExists(name)) {
 			DBObject dbs = new BasicDBObject();
@@ -43,23 +32,26 @@ public class MdbInsert {
 	}
 
 	// 单个数据插入
-	public void insert(String collname, DBObject dbs) {
+	public static void insert(String collname, DBObject dbs,DB db) {
 		DBCollection coll = db.getCollection(collname);
 		coll.insert(dbs);
 	}
 
 	// 批量插入数据
-	public void insertBatch(String collname, List<DBObject> dbses) {
+	public static void insertBatch(String collname, List<DBObject> dbses,DB db) {
 		DBCollection coll = db.getCollection(collname);
 		coll.insert(dbses);
 	}
 
-	@SuppressWarnings("resource")
-	public static void main(String[] args) throws IOException {
-
-		MdbInsert mongo = new MdbInsert("MapLoc");
-		mongo.createCollection("mapPoint");
-		mongo.createCollection("mapArc");
+	@SuppressWarnings({ "resource", "deprecation" })
+	public static void mdbInsert() throws IOException {//插入数据库
+		Mongo connection = null;
+		DB db = null;
+		connection = new Mongo("127.0.0.1:27017");
+		db = connection.getDB("MapLoc");
+		db.dropDatabase();
+		createCollection("mapPoint",db);
+		createCollection("mapArc",db);
 		File fmap = new File(MyCons.MongoDataDir+"MongoDB\\mapPoint.txt");
 		File farc = new File(MyCons.MongoDataDir+"MongoDB\\mapArc.txt");
 
@@ -120,7 +112,7 @@ public class MdbInsert {
 
 			dbObject.add(loc);
 		}
-		mongo.insertBatch("mapArc", dbObject);
+		insertBatch("mapArc", dbObject,db);
 		// 向数据库插入点的信息
 				dbObject.clear();
 				read = new InputStreamReader(new FileInputStream(fmap));
@@ -141,7 +133,7 @@ public class MdbInsert {
 					loc.put("edge", list);
 					dbObject.add(loc);
 				}
-				mongo.insertBatch("mapPoint", dbObject);
+				insertBatch("mapPoint", dbObject,db);
 		db.getCollection("mapPoint").ensureIndex(new BasicDBObject("gis","2d"));
 		buf.close();
 		connection.close();

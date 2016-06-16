@@ -15,7 +15,6 @@ public class PostProcess {
 	private static Mongo connection = null;
 	private static DB db = null;
 	private static double disMax = 100.0;
-	
 	public PostProcess(){
 		connection = null;
 		db = null;
@@ -71,7 +70,7 @@ public class PostProcess {
 				double lng=(to.y+from.y)/2;
 				poset.add(new Point(lat,lng));//第i个点和第i+1个点的中点
 				double  radius = Algorithm.Distance(from, to)+200.0;//半径
-				MapLoc mymp=MdbFind.getMap(poset,db, radius/1000.0);//得到插入的点相关的地图
+				MapLoc mymp=Algorithm.getMap(poset,db, radius/1000.0);//得到插入的点相关的地图
 				Graph Dij=new Graph(mymp);
 				MapLoc newmap = new MapLoc();
 				Dij.MapSimple(mymp,newmap);//简化地图，保证地图连通

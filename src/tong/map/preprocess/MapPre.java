@@ -17,6 +17,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.StringTokenizer;
 
+import tong.mongo.loction.Algorithm;
+
 import com.defcons.MyCons;
 
 public class MapPre {
@@ -24,26 +26,9 @@ public class MapPre {
 	//设定一个UUID 用于随机生成ID （随机ID为当前时间精确到毫秒+UUID） UUID为递增的
 	static long UUID = 10000;
 	final static long MODNUM = UUID*10;
-	private static double Rad(double d) {
-		return d * Math.PI / 180.0;
-	}
-
-	public static double Distance(double lat1, double lng1, double lat2,
-			double lng2) {
-		double radLat1 = Rad(lat1);
-		double radLat2 = Rad(lat2);
-		double a = radLat1 - radLat2;
-		double b = Rad(lng1) - Rad(lng2);
-		double s = 2 * Math.asin(Math.sqrt(Math.pow(Math.sin(a / 2), 2)
-				+ Math.cos(radLat1) * Math.cos(radLat2)
-				* Math.pow(Math.sin(b / 2), 2)));
-		s = s * 6378137.0;
-		s = Math.round(s * 10000) / 10000;
-		return s;
-	}
-
+	
 	@SuppressWarnings("resource")
-	public static void main(String[] args) throws IOException {
+	public static void mapPrepare() throws IOException {
 		File finArc = new File(MyCons.MongoDataDir+"MapPre\\Arc.txt");
 		File finPoint = new File(MyCons.MongoDataDir+"MapPre\\Point.txt");
 		File foutPoint = new File(MyCons.MongoDataDir+"MongoDB\\mapPoint.txt");
@@ -141,7 +126,7 @@ public class MapPre {
 			lat2 = Double.parseDouble((String) list.get(0));
 			lon2 = Double.parseDouble((String) list.get(1));
 			if (entry.getValue() == preValue) {
-				double length = Distance(lat1, lon1, lat2, lon2);
+				double length = Algorithm.Distance(lat1, lon1, lat2, lon2);
 				flag = String.valueOf(System.currentTimeMillis());
 				UUID= (UUID+1)%MODNUM;
 				Arcid = flag + UUID;

@@ -94,7 +94,7 @@ public class OpenStreetMap {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
 					}
-	                System.out.println(sb.toString());
+	                //System.out.println(sb.toString());
 	        	}else if(qName.equals("way")){
 	            	s = attributes.getValue("id")+"      "
 	            			+attributes.getValue("version")+"      ";
@@ -108,7 +108,7 @@ public class OpenStreetMap {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
 					}
-	        		System.out.println(s+attributes.getValue("ref")+"      ");
+	        		//System.out.println(s+attributes.getValue("ref")+"      ");
 	        	}else if(qName.equals("tag")){
 	        		if(s==null)
 	        			return;
@@ -119,7 +119,7 @@ public class OpenStreetMap {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
 					}
-	        		System.out.println(s+"      "+attributes.getValue("k"));
+	        		//System.out.println(s+"      "+attributes.getValue("k"));
 	        	}else if(qName.equals("relation")){
 	        		if(s!=null)
 	        			s = null;
@@ -146,7 +146,7 @@ public class OpenStreetMap {
 	    }
 	}
 		 
-	public static void main(String[] args) {
+	public static void mapAnalysis() {
 		SAXParserFactory saxfac = SAXParserFactory.newInstance();
 		try {
 			SAXParser saxparser = saxfac.newSAXParser();
