@@ -57,7 +57,7 @@ public class Hmm {
 			System.out.println("定位点出错");
 		}
 		double dt = Dij.GetDisAtoB(mymp, u, mymp.LineSet.get(from), v,
-				mymp.LineSet.get(to), len);
+				mymp.LineSet.get(to), len,true);
 		if (((Double) dt).equals(Double.NaN)) {
 			System.out.println("最短路计算失败");
 		}

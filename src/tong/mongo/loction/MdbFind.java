@@ -44,14 +44,16 @@ public class MdbFind {
 	public static int startpoint = 0;//调试起点
 	public static int endpoint = 100; //调试终点
 	public static boolean GPSOUTPUT = false; // true： 显示GPS结果 false 显示Ta匹配结果
+	public static boolean PrintDriveOrbit= false;
 	private static Algorithm Alg;
 	public static double Talength=0.0;
 	public static double Gpslength=0.0;
 	public static double LCSlength=0.0;
-	public static OutputFile PreciseOut;
+	public static OutputFile PreciseOut; //输出precise到文件
 	public static OutputFile RecallOut;
 	public static OutputFile diserrorOut;
-	final static int ONCE_NUM = 100; //一次给点的数量	
+	public static HashMap<Long,Line> DriveMap;//用于统计测试数据行驶的弧段
+	final static int ONCE_NUM = 40; //一次给点的数量	
 	static String outfilename  = 
 			MyCons.CarfileDir+"road_poi//JSON_roadinfo_"+filename;
 	//---------------------------------------------------------------//	
@@ -61,10 +63,7 @@ public class MdbFind {
 	static DB db = null;
 	static DBCollection dbcoll = null;
 	static DBCollection coll = null;	
-	
-	public static void main(String[] args) throws IOException, SQLException, ParseException {
-		//什么也不做
-	}
+
 	public static void Initialize(int index){//初始化
 		INDEX = index;
 		filename = MyCons.arr_filename[INDEX];
@@ -100,14 +99,18 @@ public class MdbFind {
 		//得到车的轨迹
 		Car mycar ;
 		mycar = carAzi.readFileSolution(filename,map_lteloc,TRUETA);//得到完整的车的轨迹
+		if(PrintDriveOrbit){
+			getMap(mycar.GpsSet,db,0.5);
+			return;
+		}
 		CarLocate(mycar);
 		//输出过滤之后的street中点信息
 		
 		allstreetSet=outLineWithFilter(outer,allstreetSet,!GPSOUTPUT);//后处理过后的集合 
 		GpsstreetSet=outLineWithFilter(outer,GpsstreetSet,GPSOUTPUT);//对Gps匹配结果进行后处理(认为是准确的轨迹)
 		//点过滤之后再进行误差估计
-		//ErrorEstimate.DisError(GpsstreetSet, GpsstreetSet);//TA匹配结果与Gps匹配结果的相同时间点的距离误差
-		ErrorEstimate.DisError(allstreetSet,mycar);
+		//ErrorEstimate.DisError(GpsstreetSet, GpsstreetSet);
+		ErrorEstimate.DisError(allstreetSet,GpsstreetSet,mycar,db);//TA匹配结果与Gps匹配结果的相同时间点的距离误差
 		ErrorEstimate.TaPrecise(allstreetSet,GpsstreetSet,db);//进行误差估计
 
 		connection.close();
@@ -170,63 +173,63 @@ public class MdbFind {
 	}
 	public static void CarLocate(Car mycar){ // 返回车的定位轨迹坐标
 		CarInformation carAzi = new CarInformation();
-//		if(ERRORESTIMATE){//如果需要进行误差评价
-//			Car GpsCar = carAzi.getCar(mycar,5,true);//这里取得是GPS定位的点（认为这个匹配轨迹是车真实的轨迹，试验用）
-//			getpath(GpsCar,GpsstreetSet,true);//计算真实路径
-//		}
-//		mycar = carAzi.getCar(mycar,INTERVALNUM,USEGPS); //误差过滤后并且根据具体情况选取点（TA和GPS各不相同）
-//		getpath(mycar,allstreetSet,USEGPS);
-		
-		mycar = carAzi.getCar(mycar,INTERVALNUM,USEGPS); //误差过滤后并且根据具体情况选取点（TA和GPS各不相同）
-		int experiment=0;//试验用
-		long preline=-1;//上一次匹配的结果弧段
-		///////////////给一组car赋值(一组为30个)///////////////////////
-		System.out.println("pointnum = "+mycar.PointNum);
-		for(int count = 0 ; count < mycar.PointNum ; count+=ONCE_NUM){
-			experiment++;
-			if(experiment>=startpoint&&experiment<=endpoint){//如果在调试区间内，则进行计算
-				int mycurrnum = 0;
-				Vector<Vector<Long>> legalline = new Vector<Vector<Long>>();//候选集
-				Vector<AnchorPoint> PointSet = new Vector<AnchorPoint>();//基站坐标
-				Vector<Point> GpsSet = new Vector<Point>();//GPS坐标
-				Vector<Long> PciSet = new Vector<Long>();
-				Vector<Integer> TimeSet = new Vector<Integer>();//时间值		
-				for(int i = count ; i< count+ONCE_NUM && i< mycar.PointNum; i++){
-					PointSet.add(mycar.getAnchorPoint(i));//得到基站坐标
-					PciSet.add(mycar.getPci(i));//加入基站ID
-					GpsSet.add(mycar.getGpsPoint(i));//得到GPS坐标
-					TimeSet.add(mycar.getTime(i));//加入时间
-					mycurrnum ++;
-				}	
-				Car currcar = new Car(mycurrnum,legalline,PointSet,GpsSet,PciSet,TimeSet); //30个点车
-				///////////////////////////////////////////////////////////////
-				//以下取对应轨迹的地图数据
-				MapLoc mLoc = getMap(currcar.GpsSet,db,0.3);//获取地图
-				Estimate est = new Estimate();//匹配函数
-				Vector<Node> street = new Vector<Node>();//TA匹配结果
-				Vector<Node> GpsStreet = new Vector<Node>();//Gps匹配结果
-				if(ERRORESTIMATE)
-					est.StreetEstimate(mLoc,currcar, street,GpsStreet,preline);
-				else
-					est.StreetEstimate(mLoc, currcar, street, preline,USEGPS); //调用匹配算法
-				////////////////将上一次匹配的最后一条弧段当做下一次匹配的第一个匹配弧/////////////////////////
-				if(street.size()>0){
-					preline = street.get(street.size()-1).lineid;
-				}
-				else
-					preline = -1;
-				if(DEBUG){
-					currcar.debug();
-					System.out.println("preline = "+preline);
-				}
-				allstreetSet.addAll(street); //加入street
-				GpsstreetSet.addAll(GpsStreet);
-				if(street.size()==0){ //如果当前没有匹配到结果，则还需要进一步处理
-					//System.out.println("没有匹配到street!!!!!!!!!!!"+" experiment = "+experiment);
-					//currcar.debug();
-				}
-			}
+		if(ERRORESTIMATE){//如果需要进行误差评价
+			Car GpsCar = carAzi.getCar(mycar,5,true);//这里取得是GPS定位的点（认为这个匹配轨迹是车真实的轨迹，试验用）
+			getpath(GpsCar,GpsstreetSet,true);//计算真实路径
 		}
+		mycar = carAzi.getCar(mycar,INTERVALNUM,USEGPS); //误差过滤后并且根据具体情况选取点（TA和GPS各不相同）
+		getpath(mycar,allstreetSet,USEGPS);
+		
+//		mycar = carAzi.getCar(mycar,INTERVALNUM,USEGPS); //误差过滤后并且根据具体情况选取点（TA和GPS各不相同）
+//		int experiment=0;//试验用
+//		long preline=-1;//上一次匹配的结果弧段
+//		///////////////给一组car赋值(一组为30个)///////////////////////
+//		System.out.println("pointnum = "+mycar.PointNum);
+//		for(int count = 0 ; count < mycar.PointNum ; count+=ONCE_NUM){
+//			experiment++;
+//			if(experiment>=startpoint&&experiment<=endpoint){//如果在调试区间内，则进行计算
+//				int mycurrnum = 0;
+//				Vector<Vector<Long>> legalline = new Vector<Vector<Long>>();//候选集
+//				Vector<AnchorPoint> PointSet = new Vector<AnchorPoint>();//基站坐标
+//				Vector<Point> GpsSet = new Vector<Point>();//GPS坐标
+//				Vector<Long> PciSet = new Vector<Long>();
+//				Vector<Integer> TimeSet = new Vector<Integer>();//时间值		
+//				for(int i = count ; i< count+ONCE_NUM && i< mycar.PointNum; i++){
+//					PointSet.add(mycar.getAnchorPoint(i));//得到基站坐标
+//					PciSet.add(mycar.getPci(i));//加入基站ID
+//					GpsSet.add(mycar.getGpsPoint(i));//得到GPS坐标
+//					TimeSet.add(mycar.getTime(i));//加入时间
+//					mycurrnum ++;
+//				}	
+//				Car currcar = new Car(mycurrnum,legalline,PointSet,GpsSet,PciSet,TimeSet); //30个点车
+//				///////////////////////////////////////////////////////////////
+//				//以下取对应轨迹的地图数据
+//				MapLoc mLoc = getMap(currcar.GpsSet,db,0.3);//获取地图
+//				Estimate est = new Estimate();//匹配函数
+//				Vector<Node> street = new Vector<Node>();//TA匹配结果
+//				Vector<Node> GpsStreet = new Vector<Node>();//Gps匹配结果
+//				if(ERRORESTIMATE)
+//					est.StreetEstimate(mLoc,currcar, street,GpsStreet,preline);
+//				else
+//					est.StreetEstimate(mLoc, currcar, street, preline,USEGPS); //调用匹配算法
+//				////////////////将上一次匹配的最后一条弧段当做下一次匹配的第一个匹配弧/////////////////////////
+//				if(street.size()>0){
+//					preline = street.get(street.size()-1).lineid;
+//				}
+//				else
+//					preline = -1;
+//				if(DEBUG){
+//					currcar.debug();
+//					System.out.println("preline = "+preline);
+//				}
+//				allstreetSet.addAll(street); //加入street
+//				GpsstreetSet.addAll(GpsStreet);
+//				if(street.size()==0){ //如果当前没有匹配到结果，则还需要进一步处理
+//					//System.out.println("没有匹配到street!!!!!!!!!!!"+" experiment = "+experiment);
+//					//currcar.debug();
+//				}
+//			}
+//		}
 	}
 	
 	//-------------加上过滤器,输出过滤之后的道路中点--------------//
@@ -317,11 +320,14 @@ public class MdbFind {
 					l.index = id;
 					l.pid[0] = m.get("x");
 					l.pid[1] = m.get("y");
+					
 					l.length = length;
 					l.strid = strid;
 					if (pMap.containsKey(l.pid[0])&& pMap.containsKey(l.pid[1])) {
 						l.p[0] = pMap.get(l.pid[0]);
 						l.p[1] = pMap.get(l.pid[1]);
+						if(PrintDriveOrbit)
+							DriveMap.put(key, l);
 						lMap.put(key, l);
 					}
 				}

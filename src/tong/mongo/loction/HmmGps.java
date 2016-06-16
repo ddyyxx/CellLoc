@@ -42,7 +42,7 @@ public class HmmGps{
 	}
 	public double GetTransP(Point u,long from,Point v,long to,MapLoc mymp){ //转移概率
 		double len=Alg.Distance(u,v);//直线距离
-		double dt=Dij.GetDisAtoB(mymp, u, mymp.getLine(from), v, mymp.getLine(to),len);
+		double dt=Dij.GetDisAtoB(mymp, u, mymp.getLine(from), v, mymp.getLine(to),len,false);
 		//double dt=Dij.GetDisAtoB(mymp, u, mymp.LineSet.get(from), v, mymp.LineSet.get(to));//最短路距离
 		if(dt==INF)//如果不连通，则返回0
 			return 0.0;

@@ -2,9 +2,11 @@ package tong.mongo.loction;
 
 import java.io.IOException;
 import java.net.UnknownHostException;
+import java.util.Map;
 import java.util.Vector;
 
 import tong.mongo.defclass.Car;
+import tong.mongo.defclass.Line;
 import tong.mongo.defclass.Node;
 import tong.mongo.defclass.Point;
 
@@ -14,9 +16,16 @@ import com.mongodb.DB;
 import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
+import com.mongodb.Mongo;
 
 public class ErrorEstimate {
 	//--------将TA匹配轨迹与GPS匹配轨迹进行对比。。匹配精确度----------//
+	public static void main(String[] args) throws UnknownHostException{
+		 Mongo connection = new Mongo("127.0.0.1:27017");
+		 DB db=connection.getDB("MapLoc");
+		 Line nowline=GetLine(146482998334113862L,db);
+		 nowline.print();
+	}
 		public static void TaPrecise(Vector<Node> TaOrbit,Vector<Node> GpsOrbit,DB db) throws IOException{ //对比Ta匹配结果和GPS匹配结果（ 两条匹配轨迹的LCS所占比例）
 			long pre=0;
 			Vector<Long> Ta=new Vector<Long>();
@@ -107,9 +116,11 @@ public class ErrorEstimate {
 			System.out.println("n ="+n+" m ="+m+" LCS = "+dp[n][m]);
 		}
 		
-		public static void DisError(Vector<Node> TaOrbit,Vector<Node> GpsOrbit){//对比Ta匹配结果和GPS匹配结果的精度，标准（欧式距离）
+		public static void DisError(Vector<Node> TaOrbit,Vector<Node> GpsOrbit,Car Gpscar,DB db) throws IOException{//对比Ta匹配结果与测量GPS坐标，标准（欧式距离）
 			Alg =new Algorithm();
-			int n=TaOrbit.size(),m=GpsOrbit.size(),l=0,r=0,num=0;
+			int n=TaOrbit.size(),m=GpsOrbit.size(),l=0,r=0,po=0,num=0;
+//			OutputFile output = new OutputFile();
+//			output.init(MyCons.CarfileDir+"DisError//Error_"+MdbFind.filename);
 			double Error =0.0;
 			while(l<n&&r<m){
 				Node Ta = TaOrbit.get(l);
@@ -127,8 +138,16 @@ public class ErrorEstimate {
 					}
 					else{
 						num++;
-						double dist =Alg.Distance(Ta.po, Gps.po);
+						while(po<Gpscar.PointNum&&Gpscar.getTime(po)<Ta.time){
+							po++;
+						}
+						Point nowp = Gpscar.getGpsPoint(po);
+						Line trueLine = GetLine(Gps.lineid,db);
+						Point Gpspoint = Alg.MinDistPtoLine(nowp,trueLine);
+						double dist =Alg.Distance(Ta.po, Gpspoint);
 						Error+=dist;
+						if(Ta.lineid==Gps.lineid)
+							MdbFind.diserrorOut.outputToFile(String.valueOf(dist)+'\n');
 //						System.out.println("dis = "+dist+" time = "+Ta.time+" TaLine ="+Ta.lineid+
 //								" GpsLine ="+Gps.lineid);
 						l++;
@@ -136,46 +155,30 @@ public class ErrorEstimate {
 					}
 				}
 			}
-			System.out.println("num = "+num+" meandistError = "+Error/num);
-		}
-		
-		public static void DisError(Vector<Node> TaOrbit,Car Gpscar) throws IOException{//对比Ta匹配结果与测量GPS坐标，标准（欧式距离）
-			Alg =new Algorithm();
-			int n=TaOrbit.size(),m=Gpscar.PointNum,l=0,r=0,num=0;
-			OutputFile output = new OutputFile();
-			output.init(MyCons.CarfileDir+"DisError//Error_"+MdbFind.filename);
-			double Error =0.0;
-			while(l<n&&r<m){
-				Node Ta = TaOrbit.get(l);
-				int Gpstime=Gpscar.getTime(r);
-				Point Gpspoint =Gpscar.getGpsPoint(r);
-				if(Ta.time==-1)
-					l++;
-				else{
-					if(Ta.time<Gpstime){
-						l++;
-					}
-					else if(Ta.time>Gpstime){
-						r++;
-					}
-					else{
-						num++;
-						double dist =Alg.Distance(Ta.po, Gpspoint);
-						Error+=dist;
-						//System.out.println("dis = "+dist+" time = "+Ta.time+" TaLine ="+Ta.lineid);
-						//System.out.println(dist);
-						//output.outputToFile(String.valueOf(dist)+'\n');
-						if(dist<400.0)
-							MdbFind.diserrorOut.outputToFile(String.valueOf(dist)+'\n');
-						l++;
-						r++;
-					}
-				}
-			}
-			output.closelink();
+			//output.closelink();
 			System.out.println("num = "+num+" meandistError = "+Error/num);
 		}
 		//根据弧ID返回弧的长度
+		public static Line GetLine(long Lineid,DB db) throws UnknownHostException{
+			DBCollection dbcollArc = db.getCollection("mapArc");
+			DBCursor dbcsorArc = dbcollArc.find(new BasicDBObject("_id", Lineid));
+			DBObject arcobject = dbcsorArc.next();
+			@SuppressWarnings("unchecked")
+			Map<String, Long> m = (Map<String, Long>) arcobject.get("gis");
+			long pointA = m.get("x");
+			long pointB = m.get("y");
+			Line retLine = new Line(GetPoint(pointA,db),GetPoint(pointB,db),Lineid,pointA,pointB,0,0);
+			return retLine;
+		}
+		public static Point GetPoint(long pointid,DB db){
+			DBCollection dbcollArc = db.getCollection("mapPoint");
+			DBCursor dbcsorPo = dbcollArc.find(new BasicDBObject("_id", pointid));
+			DBObject poobject = dbcsorPo.next();
+			@SuppressWarnings("unchecked")
+			Map<String, Double> m = (Map<String, Double>) poobject.get("gis");
+			Point retpo =new Point(m.get("lat"),m.get("lon"));
+			return retpo;
+		}
 		public static double GetLineLength(long Lineid,DB db) throws UnknownHostException{
 			//System.out.println(Lineid);
 			DBCollection dbcollArc = db.getCollection("mapArc");

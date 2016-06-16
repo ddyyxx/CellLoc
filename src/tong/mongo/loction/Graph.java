@@ -243,7 +243,7 @@ public class Graph{//
 		double Distance=dis.get(T);
 		return Distance;
 	}
-	public double GetDisAtoB(MapLoc mymp,Point a,Line La,Point b,Line Lb,double len){//得到从
+	public double GetDisAtoB(MapLoc mymp,Point a,Line La,Point b,Line Lb,double len,boolean useTa){//得到从
 
 		Point x=Alg.ptoseg(a, La);//弧La上到点a最近的点
 		Point y=Alg.ptoseg(b, Lb);//弧Lb上到点b最近的点

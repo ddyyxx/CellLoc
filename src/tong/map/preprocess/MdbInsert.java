@@ -20,6 +20,8 @@ import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
 import com.mongodb.Mongo;
 
+
+/// 将地图数据插入到数据库当中
 public class MdbInsert {
 
 	static Mongo connection = null;
@@ -80,8 +82,7 @@ public class MdbInsert {
 		long pid, aid, x, y;
 		double lat, lon, length;
 		long wayid;
-		Map<Long, List<Long>> pEdge = new HashMap<Long, List<Long>>();
-
+		Map<Long, List<Long>> pEdge = new HashMap<Long, List<Long>>();		
 		// 向数据库插入边的信息
 		dbObject.clear();
 		read = new InputStreamReader(new FileInputStream(farc));
@@ -90,7 +91,7 @@ public class MdbInsert {
 			stk = new StringTokenizer(value);
 			aid = Long.parseLong(stk.nextToken());
 			x = Long.parseLong(stk.nextToken());
-			y = Long.parseLong(stk.nextToken());
+			y = Long.parseLong(stk.nextToken());	
 			length = Double.parseDouble(stk.nextToken());
 			wayid = Long.parseLong(stk.nextToken());
 
@@ -108,7 +109,6 @@ public class MdbInsert {
 				list.add(aid);
 				pEdge.put(y, list);
 			}
-
 			DBObject loc = new BasicDBObject();
 			Map<String, Long> mapObject = new HashMap<String, Long>();	
 			mapObject.put("x", x);
@@ -121,33 +121,30 @@ public class MdbInsert {
 			dbObject.add(loc);
 		}
 		mongo.insertBatch("mapArc", dbObject);
-
 		// 向数据库插入点的信息
-		dbObject.clear();
-		read = new InputStreamReader(new FileInputStream(fmap));
-		buf = new BufferedReader(read);
-		while ((value = buf.readLine()) != null) {
-			stk = new StringTokenizer(value);
-			pid = Long.parseLong(stk.nextToken());
-			lat = Double.parseDouble(stk.nextToken());
-			lon = Double.parseDouble(stk.nextToken());
-
-			DBObject loc = new BasicDBObject();
-			Map<String, Double> mapObject = new LinkedHashMap<String, Double>();
-			mapObject.put("lat", lat);
-			mapObject.put("lon", lon);
-			List<Long> list = pEdge.get(pid);
-			loc.put("_id", pid);
-			loc.put("gis", mapObject);
-			loc.put("edge", list);
-
-			dbObject.add(loc);
-		}
-		mongo.insertBatch("mapPoint", dbObject);
+				dbObject.clear();
+				read = new InputStreamReader(new FileInputStream(fmap));
+				buf = new BufferedReader(read);
+				while ((value = buf.readLine()) != null) {
+					stk = new StringTokenizer(value);
+					pid = Long.parseLong(stk.nextToken());
+					lat = Double.parseDouble(stk.nextToken());
+					lon = Double.parseDouble(stk.nextToken());
+					
+			    	DBObject loc = new BasicDBObject();
+					Map<String, Double> mapObject = new LinkedHashMap<String, Double>();
+					mapObject.put("lat", lat);
+					mapObject.put("lon", lon);
+					List<Long> list = pEdge.get(pid);
+					loc.put("_id", pid);
+					loc.put("gis", mapObject);
+					loc.put("edge", list);
+					dbObject.add(loc);
+				}
+				mongo.insertBatch("mapPoint", dbObject);
 		db.getCollection("mapPoint").ensureIndex(new BasicDBObject("gis","2d"));
 		buf.close();
 		connection.close();
 		System.out.println("插入完毕");
 	}
-
 }

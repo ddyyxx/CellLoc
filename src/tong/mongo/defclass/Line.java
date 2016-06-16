@@ -34,6 +34,8 @@ public class Line{
     	return new Point((p[0].x+p[1].x)/2,(p[0].y+p[1].y)/2);
     }
     public void print(){
+    	p[0].print();
+    	p[1].print();
     	System.out.println(index+" "+pid[0]+" "+pid[1]+" "+length);
     }
 }
