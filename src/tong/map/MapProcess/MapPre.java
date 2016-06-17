@@ -19,7 +19,7 @@ import java.util.StringTokenizer;
 
 import tong.mongo.loction.Algorithm;
 
-import com.defcons.MyCons;
+import com.defcons.SystemSettings;
 
 public class MapPre {
 
@@ -29,11 +29,11 @@ public class MapPre {
 	
 	@SuppressWarnings("resource")
 	public static void mapPrepare() throws IOException {
-		File finArc = new File(MyCons.MongoDataDir+"MapPre\\Arc.txt");
-		File finPoint = new File(MyCons.MongoDataDir+"MapPre\\Point.txt");
-		File foutPoint = new File(MyCons.MongoDataDir+"MongoDB\\mapPoint.txt");
-		File foutAre = new File(MyCons.MongoDataDir+"MongoDB\\mapArc.txt");
-		File foutLength = new File(MyCons.MongoDataDir+"MongoDB\\mapArcLength.txt");
+		File finArc = new File(SystemSettings.MongoDataDir+"MapPre\\Arc.txt");
+		File finPoint = new File(SystemSettings.MongoDataDir+"MapPre\\Point.txt");
+		File foutPoint = new File(SystemSettings.MongoDataDir+"MongoDB\\mapPoint.txt");
+		File foutAre = new File(SystemSettings.MongoDataDir+"MongoDB\\mapArc.txt");
+		File foutLength = new File(SystemSettings.MongoDataDir+"MongoDB\\mapArcLength.txt");
 		InputStreamReader read = null;
 		BufferedReader buf = null;
 		Writer out = null;

@@ -14,6 +14,7 @@ import tong.mongo.defclass.Point;
 import tong.mongo.loction.Algorithm;
 import tong.mongo.loction.MdbFind;
 
+import com.defcons.SystemSettings;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
@@ -22,10 +23,10 @@ import com.mongodb.DBObject;
 
 /**
  * 
- * @author ddyyxx 从数据库中读取地图数据
+ * @author ddyyxx 从数据库中读取地图数据（点，弧，弧长度，地图）
  */
 public class MapData {
-	// 根据弧ID返回弧的长度
+	// 根据弧ID返回对应的弧
 	public static Line GetLine(long Lineid, DB db) throws UnknownHostException {
 		DBCollection dbcollArc = db.getCollection("mapArc");
 		DBCursor dbcsorArc = dbcollArc.find(new BasicDBObject("_id", Lineid));
@@ -38,7 +39,7 @@ public class MapData {
 				Lineid, pointA, pointB, 0, 0);
 		return retLine;
 	}
-
+	//根据点ID返回对应的点
 	public static Point GetPoint(long pointid, DB db) {
 		DBCollection dbcollArc = db.getCollection("mapPoint");
 		DBCursor dbcsorPo = dbcollArc.find(new BasicDBObject("_id", pointid));
@@ -48,7 +49,7 @@ public class MapData {
 		Point retpo = new Point(m.get("lat"), m.get("lon"));
 		return retpo;
 	}
-
+	//根据弧ID返回对应点的长度
 	public static double GetLineLength(long Lineid, DB db)
 			throws UnknownHostException {
 		DBCollection dbcollArc = db.getCollection("mapArc");
@@ -131,7 +132,7 @@ public class MapData {
 							&& pMap.containsKey(l.pid[1])) {
 						l.p[0] = pMap.get(l.pid[0]);
 						l.p[1] = pMap.get(l.pid[1]);
-						if (MdbFind.PrintDriveOrbit)
+						if (SystemSettings.PrintDriveOrbit)
 							MdbFind.DriveMap.put(key, l);
 						lMap.put(key, l);
 					}

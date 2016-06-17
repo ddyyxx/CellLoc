@@ -2,7 +2,7 @@ package basestation;
 
 import java.io.IOException;
 
-import com.defcons.MyCons;
+import com.defcons.SystemSettings;
 
 public class MainReader {
 
@@ -88,8 +88,8 @@ public class MainReader {
 				};
 		//String filename = "_Zhengye_DriveTesting_08-18.09-07.json";
 		for (String filename : arr_filename) {
-			String inputname = MyCons.CarfileDir+"BaseStation//"+ filename;
-			String outputname = MyCons.CarfileDir+"solu//solu_"+ filename;
+			String inputname = SystemSettings.CarfileDir+"BaseStation//"+ filename;
+			String outputname = SystemSettings.CarfileDir+"solu//solu_"+ filename;
 			try {
 				ReadJSON.readFileJSON(inputname, outputname);// ∂¡»°–≈œ¢
 			} catch (IOException e1) {

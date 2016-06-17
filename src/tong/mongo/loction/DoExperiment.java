@@ -8,7 +8,7 @@ import java.util.HashMap;
 import tong.mongo.defclass.Line;
 import tong.mongo.defclass.Output;
 
-import com.defcons.MyCons;
+import com.defcons.SystemSettings;
 
 
 
@@ -17,19 +17,19 @@ public class DoExperiment {
 	
 	public static void main(String[] args) throws IOException, SQLException, ParseException{
 		MdbFind.PreciseOut =new Output();
-		MdbFind.PreciseOut.init(MyCons.CarfileDir+"evaluation//Eval_Precise_empty.json");
+		MdbFind.PreciseOut.init(SystemSettings.CarfileDir+"evaluation//Eval_Precise_empty.json");
 		MdbFind.RecallOut = new Output();
-		MdbFind.RecallOut.init(MyCons.CarfileDir+"evaluation//Eval_Recall_empty.json");
+		MdbFind.RecallOut.init(SystemSettings.CarfileDir+"evaluation//Eval_Recall_empty.json");
 		MdbFind.diserrorOut = new Output();
-		MdbFind.diserrorOut.init(MyCons.CarfileDir+"evaluation//disError_empty.json");
+		MdbFind.diserrorOut.init(SystemSettings.CarfileDir+"evaluation//disError_empty.json");
 		MdbFind.DriveMap = new HashMap<Long,Line>();
 		int start=0,end=64;
 		for(int i=start;i<=end;i++){
 			MdbFind.StartWork(i);
 		}
-		if(MdbFind.PrintDriveOrbit){
+		if(SystemSettings.PrintDriveOrbit){
 			Output output = new Output();
-			output.init(MyCons.CarfileDir+"evaluation//mapdata.json");
+			output.init(SystemSettings.CarfileDir+"evaluation//mapdata.json");
 			for(Long id:MdbFind.DriveMap.keySet()){
 				Line now = MdbFind.DriveMap.get(id);
 				String str = "{\"lat1\": "+String.valueOf(now.p[0].x)

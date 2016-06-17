@@ -21,7 +21,7 @@ public class PostProcess {
 		db = null;
 	}
 	
-	public Vector<Node> filterByArcID(Vector<Node> LpSet){ //根据弧段ID进行过滤，去除相同弧ID之间的弧段，以去除回路
+	public static Vector<Node> filterByArcID(Vector<Node> LpSet){ //根据弧段ID进行过滤，去除相同弧ID之间的弧段，以去除回路
 		Vector<Node> ret =new Vector<Node>();
 		if(LpSet.size()==0)//如果为空则直接返回
 			return ret;
@@ -47,12 +47,12 @@ public class PostProcess {
 		return ret;
 	}
 	
-	public Vector<Node> removeLoops(Vector<Node> LpSet){
+	public static Vector<Node> removeLoops(Vector<Node> LpSet){
 		return filterByArcID(LpSet);//目前只使用根据弧段ID进行过滤()
 	}
 	
 	@SuppressWarnings("deprecation")
-	public Vector<Node> Interpolation(Vector<Node> LpSet) throws UnknownHostException{//补点
+	public static Vector<Node> Interpolation(Vector<Node> LpSet) throws UnknownHostException{//补点
 		connection = new Mongo("127.0.0.1:27017");
 		db = connection.getDB("MapLoc");
 		Vector<Node> ret=new Vector<Node>();//返回值
@@ -84,4 +84,8 @@ public class PostProcess {
 		ret.add(LpSet.get(size-1));
 		return ret;
 	}
+	
+//	public static Vector<Node> doPostProcess(Vector<Node> LpSet) {
+//		LpSet = remove
+//	}
 }

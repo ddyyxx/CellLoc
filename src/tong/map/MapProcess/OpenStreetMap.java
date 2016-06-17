@@ -17,7 +17,7 @@ import org.xml.sax.helpers.DefaultHandler;
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 
-import com.defcons.MyCons;
+import com.defcons.SystemSettings;
 
 /**
  * 处理从OpenStreetMap下载的原始数据，将抽取的数据输出为text文件
@@ -38,9 +38,9 @@ public class OpenStreetMap {
 	    //开始解析时调用
 	    public void startDocument() throws SAXException {
 			// 点信息
-			File pointFile = new File(MyCons.MongoDataDir+"MapPre\\Point.txt");
+			File pointFile = new File(SystemSettings.MongoDataDir+"MapPre\\Point.txt");
 			// 弧信息
-			File arcFile = new File(MyCons.MongoDataDir+"MapPre\\Arc.txt");
+			File arcFile = new File(SystemSettings.MongoDataDir+"MapPre\\Arc.txt");
 			try {
 				fosPoint = new FileOutputStream(pointFile);
 				fosArc = new FileOutputStream(arcFile);
@@ -150,7 +150,7 @@ public class OpenStreetMap {
 		SAXParserFactory saxfac = SAXParserFactory.newInstance();
 		try {
 			SAXParser saxparser = saxfac.newSAXParser();
-			InputStream is = new FileInputStream(MyCons.NewMapDir);
+			InputStream is = new FileInputStream(SystemSettings.NewMapDir);
 			MySAXHandler handler = new MySAXHandler();
 			saxparser.parse(is, handler);;
 		} catch (FileNotFoundException e) {

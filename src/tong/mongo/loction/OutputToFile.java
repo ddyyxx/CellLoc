@@ -16,7 +16,7 @@ import java.util.Map.Entry;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.defcons.MyCons;
+import com.defcons.SystemSettings;
 
 
 /**
@@ -28,15 +28,15 @@ import com.defcons.MyCons;
 //输入JSON_INFO
 public class OutputToFile {
 	//输出文件名
-	static String outputname_gps = MyCons.Outputdir+"JSON_JSON_Yanming_DriveTesting_09-05.json";
-	static String outputname_lte = MyCons.Outputdir+"lteloc//JSON_LTE_JSON_Yanming_DriveTesting_09-05.json";
+	static String outputname_gps = SystemSettings.Outputdir+"JSON_JSON_Yanming_DriveTesting_09-05.json";
+	static String outputname_lte = SystemSettings.Outputdir+"lteloc//JSON_LTE_JSON_Yanming_DriveTesting_09-05.json";
 	
 	static BufferedReader br;
 	final static String regEx ="[^0-9.\\+\\-\\sE]"; 
 	final static Pattern p = Pattern.compile(regEx);
-	static String filename = MdbFind.filename; //后处理文件名 与MdbFind里面的文件名一致
-	static String inputname = MyCons.CarfileDir+"road_poi//JSON_roadinfo_"+filename;
-	static String inputname_lte = MyCons.CarfileDir+"solu//solu_"+filename;
+	static String filename = SystemSettings.filename; //后处理文件名 与MdbFind里面的文件名一致
+	static String inputname = SystemSettings.CarfileDir+"road_poi//JSON_roadinfo_"+filename;
+	static String inputname_lte = SystemSettings.CarfileDir+"solu//solu_"+filename;
 	public static void main(String args[]) throws IOException{	
 			//do nothing
 	}
@@ -57,11 +57,11 @@ public class OutputToFile {
 				+ "\"><ele>61.3</ele><time>2015-09-04T14:12:20Z</time></trkpt>";
 	}
 	public static void init(){
-		outputname_gps = MyCons.Outputdir+"JSON_JSON_Yanming_DriveTesting_09-05.json";
-		outputname_lte = MyCons.Outputdir+"lteloc//JSON_LTE_JSON_Yanming_DriveTesting_09-05.json";
-		filename = MdbFind.filename; //后处理文件名 与MdbFind里面的文件名一致
-		inputname = MyCons.CarfileDir+"road_poi//JSON_roadinfo_"+filename;
-		inputname_lte = MyCons.CarfileDir+"solu//solu_"+filename;
+		outputname_gps = SystemSettings.Outputdir+"JSON_JSON_Yanming_DriveTesting_09-05.json";
+		outputname_lte = SystemSettings.Outputdir+"lteloc//JSON_LTE_JSON_Yanming_DriveTesting_09-05.json";
+		filename = SystemSettings.filename; 
+		inputname = SystemSettings.CarfileDir+"road_poi//JSON_roadinfo_"+filename;
+		inputname_lte = SystemSettings.CarfileDir+"solu//solu_"+filename;
 	}
 	//执行outToJSFile函数的函数
 	public static void outToJSFileRun() throws IOException{
@@ -106,11 +106,8 @@ public class OutputToFile {
 	
 	//----------用于输出标准json格式的基站位置
 	public static void outLTEToJSFile() throws IOException{
-		CarInformation carAzi = new CarInformation();
 		Map<String , double[]> map_lteloc = new HashMap<String , double[]>();
-		carAzi.getUniqLTELoc(filename,map_lteloc); //获取唯一基站位置
-		
-
+		GetCarFromFile.getUniqLTELoc(filename,map_lteloc); //获取唯一基站位置
 		BufferedWriter writer ;
 		File file = new File(outputname_lte);
 		if(!file.exists()){
@@ -147,10 +144,10 @@ public class OutputToFile {
 	///////////////////////////////////////////////
 	//-------------复制默认文件并输出保存----------(文件改名)
 	public static void copyAndWrite() throws IOException{
-		String cp_inputname = MyCons.Outputdir+"JSON_JSON_Yanming_DriveTesting_09-05.json";
-		String cp_inputname_lte = MyCons.Outputdir+"lteloc\\JSON_LTE_JSON_Yanming_DriveTesting_09-05.json";
-		String cp_outputname = MyCons.Outputdir+"JSON_"+MdbFind.filename;
-		String cp_outputname_lte = MyCons.Outputdir+"lteloc\\JSON_LTE_"+MdbFind.filename;
+		String cp_inputname = SystemSettings.Outputdir+"JSON_JSON_Yanming_DriveTesting_09-05.json";
+		String cp_inputname_lte = SystemSettings.Outputdir+"lteloc\\JSON_LTE_JSON_Yanming_DriveTesting_09-05.json";
+		String cp_outputname = SystemSettings.Outputdir+"JSON_"+SystemSettings.filename;
+		String cp_outputname_lte = SystemSettings.Outputdir+"lteloc\\JSON_LTE_"+SystemSettings.filename;
 		
 		File file_cp_input = new File(cp_inputname);
 		File file_cp_output = new File(cp_outputname);
@@ -188,9 +185,9 @@ public class OutputToFile {
 	
 	//------将初始的gps文件格式化------
 	public static void outputGpsFile(String filename) throws IOException{
-		String inputname_gps = MyCons.CarfileDir+"MyJson\\"+filename;
-		String outputname_gps = MyCons.Outputdir+"gps\\JSON_Yanming_DriveTesting_09-05.json";
-		String cp_outputname_gps = MyCons.Outputdir+"gps\\"+filename;
+		String inputname_gps = SystemSettings.CarfileDir+"MyJson\\"+filename;
+		String outputname_gps = SystemSettings.Outputdir+"gps\\JSON_Yanming_DriveTesting_09-05.json";
+		String cp_outputname_gps = SystemSettings.Outputdir+"gps\\"+filename;
 		
 		
 		FileReader fr_poi = new FileReader(inputname_gps);
@@ -229,7 +226,6 @@ public class OutputToFile {
 		}
 		writer.close();
 		br_poi.close();
-		
 		RandomAccessFile ranf=new RandomAccessFile(outputname_gps,"rw");
 		long pos=ranf.length()-2;
 		ranf.seek(pos);
@@ -238,7 +234,7 @@ public class OutputToFile {
 		ranf.write(']');
 		ranf.close();
 		
-		fileChannelCopy(new File(MyCons.Outputdir+"gps\\JSON_Yanming_DriveTesting_09-05.json"),new File(cp_outputname_gps));
+		fileChannelCopy(new File(SystemSettings.Outputdir+"gps\\JSON_Yanming_DriveTesting_09-05.json"),new File(cp_outputname_gps));
 	}
 
 }
