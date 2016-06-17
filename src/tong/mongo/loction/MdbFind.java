@@ -7,11 +7,13 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Vector;
 
+import tong.map.MapProcess.MapData;
 import tong.mongo.defclass.AnchorPoint;
 import tong.mongo.defclass.Car;
 import tong.mongo.defclass.Line;
 import tong.mongo.defclass.MapLoc;
 import tong.mongo.defclass.Node;
+import tong.mongo.defclass.Output;
 import tong.mongo.defclass.Point;
 
 import com.defcons.MyCons;
@@ -42,9 +44,9 @@ public class MdbFind {
 	public static double Talength=0.0;
 	public static double Gpslength=0.0;
 	public static double LCSlength=0.0;
-	public static OutputFile PreciseOut; //输出precise到文件
-	public static OutputFile RecallOut;
-	public static OutputFile diserrorOut;
+	public static Output PreciseOut; //输出precise到文件
+	public static Output RecallOut;
+	public static Output diserrorOut;
 	public static HashMap<Long,Line> DriveMap;//用于统计测试数据行驶的弧段
 	final static int ONCE_NUM = 40; //一次给点的数量	
 	static String outfilename  = 
@@ -74,7 +76,7 @@ public class MdbFind {
 		Initialize(index);//初始化数据
 		System.out.println("\n地图数据 "+index);
 		//初始化文件输出对象
-		OutputFile outer = new OutputFile();
+		Output outer = new Output();
 		outer.init(outfilename);
 		//数据库连接
 		connection = new Mongo("127.0.0.1:27017");
@@ -92,7 +94,7 @@ public class MdbFind {
 		Car mycar ;
 		mycar = carAzi.readFileSolution(filename,map_lteloc,TRUETA);//得到完整的车的轨迹
 		if(PrintDriveOrbit){
-			Algorithm.getMap(mycar.GpsSet,db,0.5);
+			MapData.getMap(mycar.GpsSet,db,0.5);
 			return;
 		}
 		CarLocate(mycar);
@@ -107,9 +109,9 @@ public class MdbFind {
 
 		connection.close();
 		outer.closelink();
-		OutGps.init();
-		OutGps.outToJSFileRun();//将道路结果输出并转换格式用于描点
-		OutGps.outputGpsFile(filename); //将准确GPS路径输出到前端文件
+		OutputToFile.init();
+		OutputToFile.outToJSFileRun();//将道路结果输出并转换格式用于描点
+		OutputToFile.outputGpsFile(filename); //将准确GPS路径输出到前端文件
 		
 		//计算耗时
 		long end = System.currentTimeMillis();
@@ -141,10 +143,9 @@ public class MdbFind {
 				Car currcar = new Car(mycurrnum,legalline,PointSet,GpsSet,PciSet,TimeSet); //30个点车
 				///////////////////////////////////////////////////////////////
 				//以下取对应轨迹的地图数据
-				MapLoc mLoc = Algorithm.getMap(currcar.GpsSet,db,0.3);//获取地图
-				Estimate est = new Estimate();//匹配函数
+				MapLoc mLoc = MapData.getMap(currcar.GpsSet,db,0.3);//获取地图
 				Vector<Node> street = new Vector<Node>();//TA匹配结果	
-				est.StreetEstimate(mLoc, currcar, street, preline,isGPS); //调用匹配算法
+				Estimate.StreetEstimate(mLoc, currcar, street, preline,isGPS); //调用匹配算法
 				////////////////将上一次匹配的最后一条弧段当做下一次匹配的第一个匹配弧/////////////////////////
 				if(street.size()>0){
 					preline = street.get(street.size()-1).lineid;
@@ -196,14 +197,13 @@ public class MdbFind {
 				Car currcar = new Car(mycurrnum,legalline,PointSet,GpsSet,PciSet,TimeSet); //30个点车
 				///////////////////////////////////////////////////////////////
 				//以下取对应轨迹的地图数据
-				MapLoc mLoc = Algorithm.getMap(currcar.GpsSet,db,0.3);//获取地图
-				Estimate est = new Estimate();//匹配函数
+				MapLoc mLoc = MapData.getMap(currcar.GpsSet,db,0.3);//获取地图
 				Vector<Node> street = new Vector<Node>();//TA匹配结果
 				Vector<Node> GpsStreet = new Vector<Node>();//Gps匹配结果
 				if(ERRORESTIMATE)
-					est.StreetEstimate(mLoc,currcar, street,GpsStreet,preline);
+					Estimate.StreetEstimate(mLoc,currcar, street,GpsStreet,preline);
 				else
-					est.StreetEstimate(mLoc, currcar, street, preline,USEGPS); //调用匹配算法
+					Estimate.StreetEstimate(mLoc, currcar, street, preline,USEGPS); //调用匹配算法
 				////////////////将上一次匹配的最后一条弧段当做下一次匹配的第一个匹配弧/////////////////////////
 				if(street.size()>0){
 					preline = street.get(street.size()-1).lineid;
@@ -225,7 +225,7 @@ public class MdbFind {
 	}
 	
 	//-------------加上过滤器,输出过滤之后的道路中点--------------//
-	public static Vector<Node> outLineWithFilter(OutputFile outer,Vector<Node> Tastreet,boolean UseOut) throws IOException{
+	public static Vector<Node> outLineWithFilter(Output outer,Vector<Node> Tastreet,boolean UseOut) throws IOException{
 		Vector<Node> LpSet=new Vector<Node>();		
 		PostProcess postprocess=new PostProcess();
 		LpSet=Tastreet;

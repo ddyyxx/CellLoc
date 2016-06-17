@@ -6,6 +6,7 @@ import java.text.ParseException;
 import java.util.HashMap;
 
 import tong.mongo.defclass.Line;
+import tong.mongo.defclass.Output;
 
 import com.defcons.MyCons;
 
@@ -15,11 +16,11 @@ import com.defcons.MyCons;
 public class DoExperiment {
 	
 	public static void main(String[] args) throws IOException, SQLException, ParseException{
-		MdbFind.PreciseOut =new OutputFile();
+		MdbFind.PreciseOut =new Output();
 		MdbFind.PreciseOut.init(MyCons.CarfileDir+"evaluation//Eval_Precise_empty.json");
-		MdbFind.RecallOut = new OutputFile();
+		MdbFind.RecallOut = new Output();
 		MdbFind.RecallOut.init(MyCons.CarfileDir+"evaluation//Eval_Recall_empty.json");
-		MdbFind.diserrorOut = new OutputFile();
+		MdbFind.diserrorOut = new Output();
 		MdbFind.diserrorOut.init(MyCons.CarfileDir+"evaluation//disError_empty.json");
 		MdbFind.DriveMap = new HashMap<Long,Line>();
 		int start=0,end=64;
@@ -27,7 +28,7 @@ public class DoExperiment {
 			MdbFind.StartWork(i);
 		}
 		if(MdbFind.PrintDriveOrbit){
-			OutputFile output = new OutputFile();
+			Output output = new Output();
 			output.init(MyCons.CarfileDir+"evaluation//mapdata.json");
 			for(Long id:MdbFind.DriveMap.keySet()){
 				Line now = MdbFind.DriveMap.get(id);

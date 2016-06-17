@@ -4,6 +4,7 @@ import java.net.UnknownHostException;
 import java.util.HashSet;
 import java.util.Vector;
 
+import tong.map.MapProcess.MapData;
 import tong.mongo.defclass.MapLoc;
 import tong.mongo.defclass.Node;
 import tong.mongo.defclass.Point;
@@ -70,7 +71,7 @@ public class PostProcess {
 				double lng=(to.y+from.y)/2;
 				poset.add(new Point(lat,lng));//第i个点和第i+1个点的中点
 				double  radius = Algorithm.Distance(from, to)+200.0;//半径
-				MapLoc mymp=Algorithm.getMap(poset,db, radius/1000.0);//得到插入的点相关的地图
+				MapLoc mymp=MapData.getMap(poset,db, radius/1000.0);//得到插入的点相关的地图
 				Graph Dij=new Graph(mymp);
 				MapLoc newmap = new MapLoc();
 				Dij.MapSimple(mymp,newmap);//简化地图，保证地图连通
