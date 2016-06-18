@@ -7,7 +7,7 @@ import tong.mongo.defclass.Point;
 import tong.mongo.loction.Algorithm;
 
 public class BaseStation{
-	Algorithm Alg;//算法类
+	
 	Vector<CarPosition> vec;//定位点
 	public Random rand;
 	int Num=30;//智能点数量
@@ -21,7 +21,6 @@ public class BaseStation{
 		rand=new Random();
 		poset=new Point[Num];
 		Dis=new double[Num];
-		Alg=new Algorithm();
 		this.vec=new Vector<CarPosition>();
 	}
  	void Init(){
@@ -29,7 +28,6 @@ public class BaseStation{
  		rand=new Random();
 		poset=new Point[Num];
 		Dis=new double[Num];
-		Alg=new Algorithm();
  		for(int i=0;i<Num;i++){
  			int id=rand.nextInt(vec.size());
  			poset[i]=new Point(vec.get(id).lat,vec.get(id).lng);
@@ -43,7 +41,7 @@ public class BaseStation{
 			double lat=vec.get(i).lat;
 			double lng=vec.get(i).lng;
 			double dis=vec.get(i).dis;
-			double x=Alg.Distance(po, new Point(lat,lng))-dis;
+			double x=Algorithm.Distance(po, new Point(lat,lng))-dis;
 			sum+=Fabs(x);
 		}
 		return sum/size;
@@ -181,7 +179,7 @@ public class BaseStation{
 		for(int i=0;i<num;i++){
 			double lat=PointSet.get(i).lat;
 			double lng=PointSet.get(i).lng;
-			double dis=Alg.Distance(result, new Point(lat,lng))+getrand();
+			double dis=Algorithm.Distance(result, new Point(lat,lng))+getrand();
 			vec.add(new CarPosition(lat,lng,dis));
 		}
 		Point res=new Point();
@@ -189,7 +187,7 @@ public class BaseStation{
 		System.out.println("diff= "+diff);
 		result.print();
 		res.print();
-		System.out.println("distance="+Alg.Distance(res, result));
+		System.out.println("distance="+Algorithm.Distance(res, result));
 	}
 	public Point getPosition(Vector<CarPosition> PointSet,StringBuffer diff){
 		if(PointSet.size()==0){

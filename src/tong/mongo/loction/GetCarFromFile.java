@@ -6,7 +6,6 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.text.ParseException;
 import java.util.Map;
-import java.util.Vector;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -80,14 +79,7 @@ public class GetCarFromFile {
 		BufferedReader br_poi = new BufferedReader(fr_poi);
 		String line_poi = null;
 		String[] arrs_poi;
-		int carnum = 0;
-		Car mycar;
-		Vector<Vector<Long>> legalline = new Vector<Vector<Long>>();// 候选集
-		Vector<AnchorPoint> PointSet = new Vector<AnchorPoint>();// 基站坐标
-		Vector<Point> GpsSet = new Vector<Point>();// GPS 坐标
-		Vector<Long> PciSet = new Vector<Long>();// 基站id
-		Vector<Integer> TimeSet = new Vector<Integer>();// 时间值
-
+		Car mycar = new Car();
 		while ((line_poi = br_poi.readLine()) != null) {// 得到车辆所有点
 			// System.out.println(line_poi);
 			Matcher m_poi = p.matcher(line_poi);
@@ -125,15 +117,8 @@ public class GetCarFromFile {
 			nowpoint.addPoint(new Point(currlteloc[1], currlteloc[0]),
 					TimeofArrival, new sector((currAzimuth + 300) % 360,
 							(currAzimuth + 60) % 360));// 定位点坐标
-			GpsSet.add(new Point(lat_b, lng_b));// GPS坐标
-			PciSet.add(Long.parseLong(pci));// 基站ID
-			PointSet.add(nowpoint);
-			TimeSet.add(Integer.valueOf(arrs_poi[6]));// 时间值
-			carnum++;
+			mycar.addPointAll(nowpoint, new Point(lat_b,lng_b), Long.parseLong(pci), Integer.valueOf(arrs_poi[6]));
 		}
-		//
-		// //////////////////////////得到car的所有定位点//////////////////////////////////
-		mycar = new Car(carnum, legalline, PointSet, GpsSet, PciSet, TimeSet);
 		br_poi.close();
 		fr_poi.close();
 		return mycar;

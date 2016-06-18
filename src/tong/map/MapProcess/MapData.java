@@ -12,7 +12,7 @@ import tong.mongo.defclass.Line;
 import tong.mongo.defclass.MapLoc;
 import tong.mongo.defclass.Point;
 import tong.mongo.loction.Algorithm;
-import tong.mongo.loction.MdbFind;
+import tong.mongo.loction.CellLoc;
 
 import com.defcons.SystemSettings;
 import com.mongodb.BasicDBObject;
@@ -133,7 +133,7 @@ public class MapData {
 						l.p[0] = pMap.get(l.pid[0]);
 						l.p[1] = pMap.get(l.pid[1]);
 						if (SystemSettings.PrintDriveOrbit)
-							MdbFind.DriveMap.put(key, l);
+							CellLoc.DriveMap.put(key, l);
 						lMap.put(key, l);
 					}
 				}

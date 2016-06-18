@@ -16,22 +16,22 @@ import com.defcons.SystemSettings;
 public class DoExperiment {
 	
 	public static void main(String[] args) throws IOException, SQLException, ParseException{
-		MdbFind.PreciseOut =new Output();
-		MdbFind.PreciseOut.init(SystemSettings.CarfileDir+"evaluation//Eval_Precise_empty.json");
-		MdbFind.RecallOut = new Output();
-		MdbFind.RecallOut.init(SystemSettings.CarfileDir+"evaluation//Eval_Recall_empty.json");
-		MdbFind.diserrorOut = new Output();
-		MdbFind.diserrorOut.init(SystemSettings.CarfileDir+"evaluation//disError_empty.json");
-		MdbFind.DriveMap = new HashMap<Long,Line>();
+		CellLoc.PreciseOut =new Output();
+		CellLoc.PreciseOut.init(SystemSettings.CarfileDir+"evaluation//Eval_Precise_empty.json");
+		CellLoc.RecallOut = new Output();
+		CellLoc.RecallOut.init(SystemSettings.CarfileDir+"evaluation//Eval_Recall_empty.json");
+		CellLoc.diserrorOut = new Output();
+		CellLoc.diserrorOut.init(SystemSettings.CarfileDir+"evaluation//disError_empty.json");
+		CellLoc.DriveMap = new HashMap<Long,Line>();
 		int start=0,end=64;
 		for(int i=start;i<=end;i++){
-			MdbFind.StartWork(i);
+			CellLoc.StartWork(i);
 		}
 		if(SystemSettings.PrintDriveOrbit){
 			Output output = new Output();
 			output.init(SystemSettings.CarfileDir+"evaluation//mapdata.json");
-			for(Long id:MdbFind.DriveMap.keySet()){
-				Line now = MdbFind.DriveMap.get(id);
+			for(Long id:CellLoc.DriveMap.keySet()){
+				Line now = CellLoc.DriveMap.get(id);
 				String str = "{\"lat1\": "+String.valueOf(now.p[0].x)
 						+",\"lon1\": "+String.valueOf(now.p[0].y)
 						+",\"lat2\": "+String.valueOf(now.p[1].x)
@@ -42,15 +42,15 @@ public class DoExperiment {
 			output.closelink();
 		}
 		//¼ÆËã×ÜÎó²î
-		double Precision = MdbFind.LCSlength/MdbFind.Talength;
-		double Recall = MdbFind.LCSlength/MdbFind.Gpslength;
+		double Precision = CellLoc.LCSlength/CellLoc.Talength;
+		double Recall = CellLoc.LCSlength/CellLoc.Gpslength;
 		double F_Measure = 2 * Precision * Recall /(Precision + Recall);
 		System.out.println("");
 		System.out.println("precision = "+Precision*100+"%");
 		System.out.println("Recall = "+Recall*100+"%");
 		System.out.println("F_Measure = "+F_Measure*100+"%");
-		MdbFind.PreciseOut.closelink();
-		MdbFind.RecallOut.closelink();
-		MdbFind.diserrorOut.closelink();
+		CellLoc.PreciseOut.closelink();
+		CellLoc.RecallOut.closelink();
+		CellLoc.diserrorOut.closelink();
 	}
 }

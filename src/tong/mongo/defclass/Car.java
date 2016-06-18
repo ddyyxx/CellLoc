@@ -32,37 +32,10 @@ public class Car{
 		legalline.addAll(car.legalline);
 	}
 	
-	public void addGpsPoint(Point p){
+	public void addGpsPoint(Point p,int time){
 		this.GpsSet.add(p);
-		PointNum++;
-	}
-	
-	public void addTime(int time){
 		this.TimeSet.add(time);
-	}
-	
-	
-	public void debug(){
-		System.out.println("PointNum = "+PointNum);
-		for(int i=0;i<PointNum;i++){
-			//sector sec = this.getSector(i);
-			System.out.println("PCI = "+this.getPci(i)+" TA = "+this.getTa(i)+" "+
-					" dis = "+Algorithm.Distance(this.getGpsPoint(i),this.getAnchorPoint(i).getPoint(0))+" trueAngle = "+
-					Algorithm.getAngel(this.getAnchorPoint(i).getPoint(0),this.getGpsPoint(i))+" Time = "+this.getTime(i));
-		}
-	}
-	
-	public void printlegalline(MapLoc mymp,int id){ // 输出一个车定位点的候选弧集合
-		Vector<Long> vec = legalline.get(id);
-		int n = vec.size();
-		for(int i=0;i<n;i++){
-			long lid = vec.get(i);
-			Line nowline=mymp.getLine(lid);
-			Point po = getAnchorPoint(id).getPoint(0);
-			System.out.print(i+" lineid = "+vec.get(i));
-			System.out.print(" st = "+Algorithm.getAngel(po, nowline.p[0])+" ed ="+Algorithm.getAngel(po, nowline.p[1]));
-			System.out.println(" dist = "+Algorithm.Distance(po,Algorithm.MinDistPtoLine(po,nowline)));
-		}
+		PointNum++;
 	}
 	
 	public Point getGpsPoint(int id){//返回第i个点(GPS)
@@ -89,16 +62,29 @@ public class Car{
 		return PciSet.get(id);
 	}
 	
-	//============改了！！！新的构造函数
-	public Car(int pointNum, Vector<Vector<Long>> legalline,
-			Vector<AnchorPoint> pointSet, Vector<Point> gpsSet, Vector<Long> pciset,Vector<Integer> timeSet) {
-		this.PointNum = pointNum;
-		this.legalline = legalline;
-		this.PointSet = pointSet;
-		this.GpsSet = gpsSet;
-		this.PciSet = pciset;
-		this.TimeSet = timeSet;
+	public void debug(){	
+		System.out.println("PointNum = "+PointNum);
+		for(int i=0;i<PointNum;i++){
+			//sector sec = this.getSector(i);
+			System.out.println("PCI = "+this.getPci(i)+" TA = "+this.getTa(i)+" "+
+					" dis = "+Algorithm.Distance(this.getGpsPoint(i),this.getAnchorPoint(i).getPoint(0))+" trueAngle = "+
+					Algorithm.getAngel(this.getAnchorPoint(i).getPoint(0),this.getGpsPoint(i))+" Time = "+this.getTime(i));
+		}
 	}
+	
+	public void printlegalline(MapLoc mymp,int id){ // 输出一个车定位点的候选弧集合
+		Vector<Long> vec = legalline.get(id);
+		int n = vec.size();
+		for(int i=0;i<n;i++){
+			long lid = vec.get(i);
+			Line nowline=mymp.getLine(lid);
+			Point po = getAnchorPoint(id).getPoint(0);
+			System.out.print(i+" lineid = "+vec.get(i));
+			System.out.print(" st = "+Algorithm.getAngel(po, nowline.p[0])+" ed ="+Algorithm.getAngel(po, nowline.p[1]));
+			System.out.println(" dist = "+Algorithm.Distance(po,Algorithm.MinDistPtoLine(po,nowline)));
+		}
+	}
+	
 	public int PointNum;
 	public Vector<Vector<Long>> legalline;//候选集
 	public Vector<Long> PciSet;// 基站ID集

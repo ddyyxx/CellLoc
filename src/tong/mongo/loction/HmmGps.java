@@ -151,9 +151,8 @@ public class HmmGps{
 		Car ret=new Car();
 		for(int i=0;i<n;i++){
 			if(car.legalline.get(i).size()!=0){
-				ret.addGpsPoint(car.getGpsPoint(i));//加入点
+				ret.addGpsPoint(car.getGpsPoint(i),car.getTime(i));//加入点
 				ret.legalline.add(car.legalline.get(i));//加入候选集
-				ret.TimeSet.add(car.getTime(i));//加入时间
 				//时间暂时不需要，需要时候再加入
 			}
 		}
@@ -162,7 +161,7 @@ public class HmmGps{
 	
 	public Point getMidPoint(MapLoc mymp,long Lid){
 		Line L=mymp.getLine(Lid);
-		Point Midpoint = new Point((L.p[0].x+L.p[1].x)/2,(L.p[0].y+L.p[1].y)/2);
+		Point Midpoint = L.getmidpoint();
 		return Midpoint;
 	}
 	public void solve(MapLoc mymp,Car car,Vector<Node> orbit){

@@ -4,8 +4,8 @@ import java.util.Vector;
 
 public class Point {
 	public long id;
-	public double x;// 点的两个坐标
-	public double y;
+	public double x;// 纬度
+	public double y;// 经度
 
 	public Point() {
 		x=y=0;

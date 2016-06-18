@@ -94,15 +94,15 @@ public class ErrorEstimate {
 		}
 		for (int i = 0; i < k; i++)
 			LCSLength += MapData.GetLineLength(LCS.get(i), db);
-		MdbFind.Talength += TaLength;
-		MdbFind.Gpslength += GpsLength;
-		MdbFind.LCSlength += LCSLength;
+		CellLoc.Talength += TaLength;
+		CellLoc.Gpslength += GpsLength;
+		CellLoc.LCSlength += LCSLength;
 		double Precision = LCSLength / TaLength;
 		double Recall = LCSLength / GpsLength;
 		double F_Measure = 2 * Precision * Recall / (Precision + Recall);
 		
-		MdbFind.PreciseOut.outputToFile(String.valueOf(Precision) + '\n');// 输出precise到文件
-		MdbFind.RecallOut.outputToFile(String.valueOf(Recall) + '\n');// 输出recall到文件
+		CellLoc.PreciseOut.outputToFile(String.valueOf(Precision) + '\n');// 输出precise到文件
+		CellLoc.RecallOut.outputToFile(String.valueOf(Recall) + '\n');// 输出recall到文件
 		System.out.println("precision = " + Precision * 100 + "%");
 		System.out.println("Recall = " + Recall * 100 + "%");
 		System.out.println("F_Measure = " + F_Measure * 100 + "%");
@@ -138,7 +138,7 @@ public class ErrorEstimate {
 					double dist = Algorithm.Distance(Ta.po, Gpspoint);
 					Error += dist;
 					if (Ta.lineid == Gps.lineid)
-						MdbFind.diserrorOut
+						CellLoc.diserrorOut
 								.outputToFile(String.valueOf(dist) + '\n');
 					// System.out.println("dis = "+dist+" time = "+Ta.time+" TaLine ="+Ta.lineid+
 					// " GpsLine ="+Gps.lineid);

@@ -3,7 +3,8 @@ package com.defcons;
 public class SystemSettings {
 
 	// 文件名数组
-	public static String[] arr_filename = { "Ori_Mapdata_000.json", // 0
+	public static String[] arr_filename = { 
+			"Ori_Mapdata_000.json", // 0
 			"Ori_Mapdata_001.json", // 1
 			"Ori_Mapdata_002.json", // 2
 			"Ori_Mapdata_003.json", // 3
