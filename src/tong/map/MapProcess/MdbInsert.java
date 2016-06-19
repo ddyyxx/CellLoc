@@ -1,4 +1,4 @@
-package tong.map.preprocess;
+package tong.map.MapProcess;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
 
-import com.defcons.MyCons;
+import com.defcons.SystemSettings;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
@@ -52,8 +52,8 @@ public class MdbInsert {
 		db.dropDatabase();
 		createCollection("mapPoint",db);
 		createCollection("mapArc",db);
-		File fmap = new File(MyCons.MongoDataDir+"MongoDB\\mapPoint.txt");
-		File farc = new File(MyCons.MongoDataDir+"MongoDB\\mapArc.txt");
+		File fmap = new File(SystemSettings.MongoDataDir+"MongoDB\\mapPoint.txt");
+		File farc = new File(SystemSettings.MongoDataDir+"MongoDB\\mapArc.txt");
 
 		if (!fmap.exists()) {
 			System.out.println("No mapPoint.txt");

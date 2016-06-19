@@ -8,24 +8,21 @@ import java.util.Map;
 import java.util.Vector;
 
 import tong.map.MapProcess.MapData;
-import tong.mongo.defclass.AnchorPoint;
 import tong.mongo.defclass.Car;
 import tong.mongo.defclass.Line;
 import tong.mongo.defclass.MapLoc;
 import tong.mongo.defclass.Node;
 import tong.mongo.defclass.Output;
-import tong.mongo.defclass.Point;
 
 import com.defcons.SystemSettings;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
 import com.mongodb.Mongo;
 
-//main函数所在程序
 /**
  * 1.读取数据库，获取车辆信息（id 基站经纬度 时间） 2.计算 3.输出结果到显示文件
  */
-public class MdbFind {
+public class CellLoc {
 	public static double Talength = 0.0;	
 	public static double Gpslength = 0.0;	
 	public static double LCSlength = 0.0;	
@@ -72,9 +69,7 @@ public class MdbFind {
 		Map<String, double[]> map_lteloc = new HashMap<String, double[]>();
 		// 获取基站位置
 		// filename的形式为"Zhengye_DriveTesting_08-24.17-58";
-		// CarInformation carAzi = new CarInformation();
 		GetCarFromFile.getUniqLTELoc(SystemSettings.filename, map_lteloc);
-
 		// 得到车的轨迹
 		Car mycar=GetCarFromFile.readFileSolution(SystemSettings.filename,
 				map_lteloc, SystemSettings.TRUETA);// 得到完整的车的轨迹
@@ -82,6 +77,7 @@ public class MdbFind {
 			MapData.getMap(mycar.GpsSet, db, 0.5);
 			return;
 		}
+		//调用算法进行匹配
 		CarLocate(mycar);
 		// 输出过滤之后的street中点信息
 
@@ -92,10 +88,9 @@ public class MdbFind {
 		
 		// 后处理之后再进行误差估计
 		// ErrorEstimate.DisError(GpsstreetSet, GpsstreetSet);
-		ErrorEstimate.DisError(allstreetSet, GpsstreetSet, mycar, db);// TA匹配结果与Gps匹配结果的相同时间点的距离误差
+		//ErrorEstimate.DisError(allstreetSet, GpsstreetSet, mycar, db);// TA匹配结果与Gps匹配结果的相同时间点的距离误差
 		ErrorEstimate.TaPrecise(allstreetSet, GpsstreetSet, db);// 进行误差估计
 
-		
 		OutputToFile.init();
 		OutputToFile.outToJSFileRun();// 将道路结果输出并转换格式用于描点
 		OutputToFile.outputGpsFile(SystemSettings.filename); // 将准确GPS路径输出到前端文件
@@ -119,23 +114,12 @@ public class MdbFind {
 			experiment++;
 			if (experiment >= SystemSettings.startpoint
 					&& experiment <= SystemSettings.endpoint) {// 如果在调试区间内，则进行计算
-				int mycurrnum = 0;
-				Vector<Vector<Long>> legalline = new Vector<Vector<Long>>();// 候选集
-				Vector<AnchorPoint> PointSet = new Vector<AnchorPoint>();// 基站坐标
-				Vector<Point> GpsSet = new Vector<Point>();// GPS坐标
-				Vector<Long> PciSet = new Vector<Long>();
-				Vector<Integer> TimeSet = new Vector<Integer>();// 时间值
+				
+				Car currcar = new Car();
 				for (int i = count; i < count + SystemSettings.ONCE_NUM
 						&& i < mycar.PointNum; i++) {
-					PointSet.add(mycar.getAnchorPoint(i));// 得到基站坐标
-					PciSet.add(mycar.getPci(i));// 加入基站ID
-					GpsSet.add(mycar.getGpsPoint(i));// 得到GPS坐标
-					TimeSet.add(mycar.getTime(i));// 加入时间
-					mycurrnum++;
+					currcar.addPointAll(mycar.getAnchorPoint(i), mycar.getGpsPoint(i), mycar.getPci(i), mycar.getTime(i));
 				}
-				Car currcar = new Car(mycurrnum, legalline, PointSet, GpsSet,
-						PciSet, TimeSet); // 30个点车
-				// /////////////////////////////////////////////////////////////
 				// 以下取对应轨迹的地图数据
 				MapLoc mLoc = MapData.getMap(currcar.GpsSet, db, 0.3);// 获取地图
 				Vector<Node> street = new Vector<Node>();// TA匹配结果
@@ -147,7 +131,6 @@ public class MdbFind {
 					preline = -1;
 				if (SystemSettings.DEBUG) {
 					currcar.debug();
-					System.out.println("preline = " + preline);
 				}
 				Result.addAll(street); // 加入street
 				if (street.size() == 0 && !isGPS) { // 如果当前没有匹配到结果，则还需要进一步处理
@@ -179,22 +162,11 @@ public class MdbFind {
 			experiment++;
 			if (experiment >= SystemSettings.startpoint
 					&& experiment <= SystemSettings.endpoint) {// 如果在调试区间内，则进行计算
-				int mycurrnum = 0;
-				Vector<Vector<Long>> legalline = new Vector<Vector<Long>>();// 候选集
-				Vector<AnchorPoint> PointSet = new Vector<AnchorPoint>();// 基站坐标
-				Vector<Point> GpsSet = new Vector<Point>();// GPS坐标
-				Vector<Long> PciSet = new Vector<Long>();
-				Vector<Integer> TimeSet = new Vector<Integer>();// 时间值
+				Car currcar = new Car();
 				for (int i = count; i < count + SystemSettings.ONCE_NUM
 						&& i < mycar.PointNum; i++) {
-					PointSet.add(mycar.getAnchorPoint(i));// 得到基站坐标
-					PciSet.add(mycar.getPci(i));// 加入基站ID
-					GpsSet.add(mycar.getGpsPoint(i));// 得到GPS坐标
-					TimeSet.add(mycar.getTime(i));// 加入时间
-					mycurrnum++;
+					currcar.addPointAll(mycar.getAnchorPoint(i), mycar.getGpsPoint(i), mycar.getPci(i), mycar.getTime(i));
 				}
-				Car currcar = new Car(mycurrnum, legalline, PointSet, GpsSet,
-						PciSet, TimeSet); // 30个点车
 				// /////////////////////////////////////////////////////////////
 				// 以下取对应轨迹的地图数据
 				MapLoc mLoc = MapData.getMap(currcar.GpsSet, db, 0.3);// 获取地图
@@ -218,7 +190,7 @@ public class MdbFind {
 				allstreetSet.addAll(street); // 加入street
 				GpsstreetSet.addAll(GpsStreet);
 				if (street.size() == 0) { // 如果当前没有匹配到结果，则还需要进一步处理
-					// System.out.println("没有匹配到street!!!!!!!!!!!"+" experiment = "+experiment);
+					System.out.println("没有匹配到street!!!!!!!!!!!"+" experiment = "+experiment);
 					// currcar.debug();
 				}
 			}

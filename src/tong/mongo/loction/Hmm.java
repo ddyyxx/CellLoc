@@ -20,15 +20,11 @@ public class Hmm {
 	public static boolean USEGPS = false;// 表示这里用的是基站坐标
 	public Graph Dij;
 	public int MIDNUM = 15;
-	public Algorithm Alg;
 	public Vector<Vector<Point>> legalPoint;// 到可行弧的定位点
 
-	public Hmm() {
-		Alg = new Algorithm();
-	}
+	public Hmm() {}
 
 	public Hmm(Graph dij) {
-		Alg = new Algorithm();
 		this.Dij = dij;
 	}
 
@@ -42,22 +38,17 @@ public class Hmm {
 
 	public double GetP(double len) {// 状态概率 (改为return 1)
 		return 1.0;
-		/*
-		 * double x=1/(VARIANCE*Math.sqrt(PI*2)); double
-		 * y=Math.exp(-(len/VARIANCE)*(len/VARIANCE)/2.0); double
-		 * P=Min(x*y,1.0); return P;
-		 */
 	}
 
 	public double GetTransP(Point u, long from, Point v, long to, MapLoc mymp) { // 转移概率
-		double len = Alg.Distance(u, v);// 直线距离
+		double len = Algorithm.Distance(u, v);// 直线距离
 		len=0;
 		if (((Double) u.x).equals(Double.NaN)
 				|| ((Double) v.x).equals(Double.NaN)) {
 			System.out.println("定位点出错");
 		}
 		double dt = Dij.GetDisAtoB(mymp, u, mymp.LineSet.get(from), v,
-				mymp.LineSet.get(to), len);
+				mymp.LineSet.get(to), len,true);
 		if (((Double) dt).equals(Double.NaN)) {
 			System.out.println("最短路计算失败");
 		}
@@ -88,7 +79,7 @@ public class Hmm {
 		Line L1 = mymp.getLine(from), L2 = mymp.getLine(to);
 		Point P1 = L1.getmidpoint();
 		Point P2 = L2.getmidpoint();
-		double angle = Alg.getAngel(P1, P2);
+		double angle = Algorithm.getAngel(P1, P2);
 		return angle;
 	}
 
@@ -119,7 +110,7 @@ public class Hmm {
 		for (int i = 0; i < size; i++) {// 处理第一个点的状态概率
 			long id = car.legalline.get(st).get(i);
 			Point point = legalPoint.get(st).get(i);
-			double initP = GetP(Alg.disptoseg(point, mymp.LineSet.get(id)));
+			double initP = GetP(Algorithm.disptoseg(point, mymp.LineSet.get(id)));
 			if (preline != -1) {// 要根据上一次匹配的最后结果进行转移
 				if (mymp.LineSet.containsKey(preline)) {// 存在这条弧
 					Line lastline = mymp.getLine(preline);
@@ -135,7 +126,7 @@ public class Hmm {
 			for (int i = 0; i < size; i++) {// 处理第一个点的状态概率
 				long id = car.legalline.get(st).get(i);
 				Point point = legalPoint.get(st).get(i);
-				double initP = GetP(Alg.disptoseg(point, mymp.LineSet.get(id)));
+				double initP = GetP(Algorithm.disptoseg(point, mymp.LineSet.get(id)));
 				dp[0].put(id, initP);
 			}
 		}
@@ -166,9 +157,9 @@ public class Hmm {
 							assert (alpha <= PI);
 							double P = dp[i - st - 1].get(id1);
 							transp *= (1.0 + P
-									* (Alg.sigmoid(2*(PI/2  - alpha)) - 0.5));
+									* (Algorithm.sigmoid(2*(PI/2  - alpha)) - 0.5));
 						}
-						double dis = Alg.disptoseg(p2, mymp.LineSet.get(id2));// 点p2到弧id2的距离
+						double dis = Algorithm.disptoseg(p2, mymp.LineSet.get(id2));// 点p2到弧id2的距离
 
 						double P = dp[i - st - 1].get(id1) * transp * GetP(dis);
 						assert (P >= 0.0);
@@ -216,7 +207,7 @@ public class Hmm {
 			Vector<Long> lgline = new Vector<Long>();
 			AnchorPoint po = car.getAnchorPoint(i);
 			for (Long id : mymp.LineSet.keySet()) {
-				if (Alg.islegalLine(mymp.getLine(id), po))
+				if (Algorithm.islegalLine(mymp.getLine(id), po))
 					lgline.add(id);// 加入候选集
 			}
 			car.legalline.add(lgline);
@@ -246,7 +237,7 @@ public class Hmm {
 			double Ta = car.getTa(i);// 距离
 			for (int j = 0; j < m; j++) {
 				Line nowLine = mymp.LineSet.get(car.legalline.get(i).get(j));
-				Point pointnow = Alg.getLocationPoint(nowPoint, Ta, nowLine);
+				Point pointnow = Algorithm.getLocationPoint(nowPoint, Ta, nowLine);
 				if (((Double) pointnow.x).equals(Double.NaN)) {
 					nowPoint.print();
 					nowLine.p[0].print();

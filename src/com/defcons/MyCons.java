@@ -84,7 +84,7 @@ public class MyCons {
 	};
 	//文件存放地址
 	public final static String CarfileDir="G://mongomap//cardata//Zhengye_Drive_Testing_Data//"; 	//车辆数据位置
-	public final static String MongoDataDir ="G:\\mongomap\\mongo\\";                    			//数据库数据位置 (车弧点)
-	public final static String NewMapDir = "G:\\mongomap\\NewMap\\map";					 			//新地图位置
+	public final static String MongoDataDir ="G://mongomap//mongo//";                    			//数据库数据位置 (车弧点)
+	public final static String NewMapDir = "G://mongomap//NewMap//map";					 			//新地图位置
 	public final static String Outputdir="G://mongomap//osmmap//PythonMap//data2//";				//输出结果位置(用于画图)	
 }

@@ -1,4 +1,4 @@
-package tong.mongo.loction;
+package tong.mongo.defclass;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -7,7 +7,7 @@ import java.io.IOException;
 
 
 // -----规定输出格式
-public class OutputFile {
+public class Output {
 	
 	BufferedWriter writer ;
 	public void init(String filename) throws IOException{
