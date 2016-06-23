@@ -5,7 +5,7 @@ mongod --dbpath XXX（后面的XXX是数据地址 mongo文件夹地址）
 
 地图：现在大连的地图基本上全了，如果换成其他城市地图，
 其获取方法如下：
-从https://www.openstreetmap.org截取地图，输入经纬度范围（经纬度范围可根据车辆数据获得，也可以自己估计），点击导出即可。下载下来的地图放在mongomap/NewMap文件夹下。
+从https://www.openstreetmap.org 截取地图，输入经纬度范围（经纬度范围可根据车辆数据获得，也可以自己估计），点击导出即可。下载下来的地图放在mongomap/NewMap文件夹下。
 将地图数据导入数据库:
 运行MapProcess.MapInsertToMdb中的主函数即可：
 
